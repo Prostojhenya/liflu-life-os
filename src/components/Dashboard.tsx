@@ -14,6 +14,7 @@ interface Task {
   xpAwarded: boolean;
   xpValue: number;
   createdAt: any;
+  scheduledDate?: string; // Format: YYYY-MM-DD
 }
 
 const STAT_COLORS = {
@@ -117,6 +118,9 @@ export const Dashboard: React.FC = () => {
     const path = `spaces/${user.currentSpaceId}/tasks`;
     try {
       const finalStat = 'intelligence';
+      
+      // Format selected date as YYYY-MM-DD
+      const scheduledDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
 
       await addDoc(collection(db, path), {
         title: newTask,
@@ -125,6 +129,7 @@ export const Dashboard: React.FC = () => {
         xpAwarded: false,
         xpValue: XP_VALUES.TASK,
         spaceId: user.currentSpaceId,
+        scheduledDate: scheduledDateStr,
         createdAt: serverTimestamp(),
       });
       setNewTask('');
@@ -193,10 +198,15 @@ export const Dashboard: React.FC = () => {
   const selectedDateStr = selectedDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
   const isPastDate = selectedDate < today && !isToday;
   const isFutureDate = selectedDate > today && !isToday;
+  
+  // Format selected date for comparison
+  const selectedDateFormatted = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
 
-  // For now, show all tasks only for today (in future, filter by task date)
+  // Filter tasks by scheduled date
   const filteredTasks = tasks.filter(t => {
-    if (!isToday) return false;
+    // Check if task is scheduled for selected date
+    const taskDate = t.scheduledDate || `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    if (taskDate !== selectedDateFormatted) return false;
     
     if (filter === 'active') return !t.completed;
     if (filter === 'completed') return t.completed;
