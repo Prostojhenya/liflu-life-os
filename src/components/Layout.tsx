@@ -24,36 +24,11 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         <div className="flex justify-between items-center h-12">
           <div className="user-info">
              <p className="text-[9px] text-accent-magenta font-black uppercase tracking-[0.4em] glow-magenta mb-1 font-display">
-              {new Date().toLocaleDateString('ru-RU', { weekday: 'long', month: 'short', day: 'numeric' })}
+              {new Date().toLocaleDateString('ru-RU', { weekday: 'short', month: 'short', day: 'numeric' }).replace('.', '')}
             </p>
             <h1 className="text-xl font-black tracking-tighter uppercase italic glow-purple font-display leading-tight">
               {activeTab === 'dashboard' ? '' : tabs.find(t => t.id === activeTab)?.label}
             </h1>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            {/* Global Level Indicator */}
-            {user && (
-              <div className="flex items-center gap-3 px-3 py-1.5 bg-white/5 border border-white/5 rounded-xl backdrop-blur-md">
-                <div className="flex flex-col items-end">
-                  <span className="text-[7px] font-black text-[#8b7ca8] uppercase tracking-widest font-display">LEVEL</span>
-                  <span className="text-[12px] font-black text-white glow-purple font-display leading-none">{user.level}</span>
-                </div>
-              </div>
-            )}
-
-            {user && (
-              <div className="level-circle w-10 h-10 animate-in fade-in scale-in">
-                <div className="level-circle-inner relative">
-                  <img 
-                    src={user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`} 
-                    alt="Profile" 
-                    className="w-full h-full object-cover"
-                    referrerPolicy="no-referrer"
-                  />
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </header>

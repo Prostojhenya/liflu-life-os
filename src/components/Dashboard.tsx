@@ -171,7 +171,12 @@ export const Dashboard: React.FC = () => {
       <div>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-2xl font-black text-white uppercase font-display">Сегодня</h2>
+            <div className="flex items-center gap-3 mb-1">
+              <h2 className="text-2xl font-black text-white uppercase font-display">Сегодня</h2>
+              <span className="text-xs text-accent-magenta font-black uppercase tracking-wider font-display">
+                {new Date().toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'short' }).replace('.', '')}
+              </span>
+            </div>
             <p className="text-xs text-[#8b7ca8] font-bold uppercase tracking-wider font-display">
               {completedToday}/{totalToday} выполнено
             </p>
