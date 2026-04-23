@@ -181,10 +181,13 @@ export const Dashboard: React.FC = () => {
   // Filter tasks by selected date
   const isToday = selectedDate.toDateString() === today.toDateString();
   const selectedDateStr = selectedDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+  const isPastDate = selectedDate < today && !isToday;
+  const isFutureDate = selectedDate > today && !isToday;
 
   const filteredTasks = tasks.filter(t => {
-    // For now, show all tasks for any selected date
-    // In future, you can filter by task.createdAt date
+    // Only show tasks for today
+    if (!isToday) return false;
+    
     if (filter === 'active') return !t.completed;
     if (filter === 'completed') return t.completed;
     return !t.completed;
@@ -323,19 +326,44 @@ export const Dashboard: React.FC = () => {
             onChange={(e) => setNewTask(e.target.value)}
             placeholder="Добавить задачу..."
             className="w-full bg-[#0b0416] border border-white/10 rounded-2xl py-4 pl-5 pr-16 focus:outline-none focus:border-accent-purple transition-all text-base font-bold text-white placeholder:text-[#8b7ca8]/50 font-display"
-            disabled={isAdding}
+            disabled={isAdding || !isToday}
           />
           <button 
             type="submit"
-            disabled={isAdding || !newTask.trim()}
+            disabled={isAdding || !newTask.trim() || !isToday}
             className="absolute right-2 top-2 bottom-2 w-12 bg-accent-purple text-white rounded-xl flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50 shadow-[0_0_15px_rgba(139,92,246,0.3)]"
           >
             <Plus size={20} strokeWidth={3} />
           </button>
         </form>
 
-        {/* Tasks List */}
-        <div className="space-y-3">
+        {/* Tasks List or Empty State */}
+        {!isToday && filteredTasks.length === 0 ? (
+          <div className="py-12 text-center">
+            <div className="text-6xl mb-4">
+              {isPastDate ? '📜' : '📅'}
+            </div>
+            <h3 className="text-lg font-black text-white mb-2 font-display">
+              {isPastDate ? 'История' : 'Планы'}
+            </h3>
+            <p className="text-sm text-[#8b7ca8] font-display">
+              {isPastDate 
+                ? 'Здесь будет история выполненных задач' 
+                : 'Здесь будут запланированные задачи'}
+            </p>
+          </div>
+        ) : filteredTasks.length === 0 ? (
+          <div className="py-12 text-center">
+            <div className="text-6xl mb-4">✨</div>
+            <h3 className="text-lg font-black text-white mb-2 font-display">
+              Нет задач
+            </h3>
+            <p className="text-sm text-[#8b7ca8] font-display">
+              Добавьте первую задачу на сегодня
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
           <AnimatePresence>
             {displayedTasks.map((task) => (
               <motion.div
@@ -396,9 +424,10 @@ export const Dashboard: React.FC = () => {
             ))}
           </AnimatePresence>
         </div>
+        )}
 
         {/* Expand button */}
-        {hasMoreTasks && (
+        {hasMoreTasks && isToday && (
           <motion.button
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
