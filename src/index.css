@@ -1,0 +1,97 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-display: "Orbitron", sans-serif;
+  
+  --color-surface: #0b0416;
+  --color-surface-bright: #150a24;
+  --color-accent-purple: #8B5CF6;
+  --color-accent-magenta: #ff00d4;
+  --color-accent-blue: #3B82F6;
+  --color-accent-orange: #f59e0b;
+  --color-accent-red: #ef4444;
+  --color-text-dim: #8b7ca8;
+}
+
+@layer base {
+  :root {
+    --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  body {
+    @apply bg-surface text-white antialiased font-sans overflow-x-hidden;
+    background-image: 
+      radial-gradient(circle at 50% -20%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
+      radial-gradient(circle at -10% 40%, rgba(236, 72, 153, 0.05) 0%, transparent 40%);
+    background-attachment: fixed;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+
+  .safe-area-bottom {
+    padding-bottom: calc(0.5rem + var(--safe-area-inset-bottom));
+  }
+}
+
+@layer components {
+  .glow-purple {
+    text-shadow: 0 0 10px rgba(139, 92, 246, 0.5), 0 0 20px rgba(139, 92, 246, 0.3);
+  }
+  
+  .glow-magenta {
+    text-shadow: 0 0 10px rgba(255, 0, 212, 0.5), 0 0 20px rgba(255, 0, 212, 0.3);
+  }
+
+  .glow-orange {
+    text-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+  }
+
+  .bento-card {
+    @apply bg-surface-bright border border-white/5 rounded-[2rem] p-6 transition-all duration-300;
+    box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.4);
+  }
+  
+  .bento-card:hover {
+    @apply border-accent-purple/30 shadow-[0_0_20px_rgba(139,92,246,0.1)];
+    background-color: #1c0f2f;
+  }
+
+  .gaming-border {
+    @apply border-l-4 border-l-accent-magenta pl-4;
+  }
+
+  .status-bar-bg {
+    @apply bg-white/5 rounded-full overflow-hidden w-full relative h-1.5;
+  }
+
+  .status-bar-fill {
+    @apply h-full rounded-full transition-all duration-700 ease-out;
+  }
+
+  .level-circle {
+    @apply relative border-2 border-accent-purple rounded-full flex items-center justify-center overflow-hidden shadow-[0_0_15px_rgba(139,92,246,0.3)];
+    background: conic-gradient(from 180deg, #8B5CF6, #ff00d4, #3B82F6, #8B5CF6);
+    padding: 2px;
+  }
+
+  .level-circle-inner {
+    @apply w-full h-full rounded-full overflow-hidden bg-surface flex items-center justify-center;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-white/10 rounded-full hover:bg-accent-purple/50 transition-colors;
+  }
+}
+
+.markdown-body {
+  @apply text-sm leading-relaxed space-y-4;
+}

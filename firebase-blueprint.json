@@ -1,0 +1,153 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and settings",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "totalXP": { "type": "number" },
+        "level": { "type": "number" },
+        "currentSpaceId": { "type": "string" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Space": {
+      "title": "Space",
+      "description": "A shared or personal workspace",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["personal", "partner", "group"] },
+        "ownerId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "type", "ownerId"]
+    },
+    "Member": {
+      "title": "Member",
+      "description": "Membership in a space",
+      "type": "object",
+      "properties": {
+        "spaceId": { "type": "string" },
+        "userId": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "member"] },
+        "joinedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["spaceId", "userId", "role"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "A task to be completed",
+      "type": "object",
+      "properties": {
+        "spaceId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "dueDate": { "type": "string", "format": "date-time" },
+        "assigneeId": { "type": "string" },
+        "xpValue": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["spaceId", "title", "completed"]
+    },
+    "Habit": {
+      "title": "Habit",
+      "description": "A recurring habit",
+      "type": "object",
+      "properties": {
+        "spaceId": { "type": "string" },
+        "title": { "type": "string" },
+        "frequency": { "type": "string", "enum": ["daily", "weekly"] },
+        "xpValue": { "type": "number" },
+        "streak": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["spaceId", "title", "frequency"]
+    },
+    "HabitLog": {
+      "title": "HabitLog",
+      "description": "Log of habit completion",
+      "type": "object",
+      "properties": {
+        "habitId": { "type": "string" },
+        "userId": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "completed": { "type": "boolean" }
+      },
+      "required": ["habitId", "userId", "date"]
+    },
+    "ShoppingItem": {
+      "title": "ShoppingItem",
+      "description": "Item in a shopping list",
+      "type": "object",
+      "properties": {
+        "spaceId": { "type": "string" },
+        "name": { "type": "string" },
+        "quantity": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "addedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["spaceId", "name", "completed"]
+    },
+    "Goal": {
+      "title": "Goal",
+      "description": "A long-term goal",
+      "type": "object",
+      "properties": {
+        "spaceId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "targetDate": { "type": "string", "format": "date-time" },
+        "progress": { "type": "number" },
+        "xpValue": { "type": "number" },
+        "completed": { "type": "boolean" }
+      },
+      "required": ["spaceId", "title", "completed"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Chat message",
+      "type": "object",
+      "properties": {
+        "spaceId": { "type": "string" },
+        "userId": { "type": "string" },
+        "text": { "type": "string" },
+        "isAi": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["spaceId", "text", "createdAt"]
+    },
+    "XPLog": {
+      "title": "XPLog",
+      "description": "Log of XP earned",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "amount": { "type": "number" },
+        "source": { "type": "string" },
+        "sourceId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "amount", "source", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": { "schema": "User", "description": "User profiles" },
+    "/spaces/{spaceId}": { "schema": "Space", "description": "Workspaces" },
+    "/spaces/{spaceId}/members/{memberId}": { "schema": "Member", "description": "Space members" },
+    "/spaces/{spaceId}/tasks/{taskId}": { "schema": "Task", "description": "Space tasks" },
+    "/spaces/{spaceId}/habits/{habitId}": { "schema": "Habit", "description": "Space habits" },
+    "/spaces/{spaceId}/habits/{habitId}/logs/{logId}": { "schema": "HabitLog", "description": "Habit logs" },
+    "/spaces/{spaceId}/shopping/{itemId}": { "schema": "ShoppingItem", "description": "Shopping items" },
+    "/spaces/{spaceId}/goals/{goalId}": { "schema": "Goal", "description": "Space goals" },
+    "/spaces/{spaceId}/messages/{messageId}": { "schema": "Message", "description": "Chat messages" },
+    "/users/{userId}/xp_logs/{logId}": { "schema": "XPLog", "description": "XP history" }
+  }
+}

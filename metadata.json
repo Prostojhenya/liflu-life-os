@@ -1,0 +1,6 @@
+{
+  "name": "Liflu - Life OS",
+  "description": "Мобильное PWA-приложение Life OS для управления задачами, привычками, покупками, целями и искусственным интеллектом.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
