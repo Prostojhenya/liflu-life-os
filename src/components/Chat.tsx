@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
+// import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
 import { useStore, XP_VALUES } from '@/store/useStore';
 import { db } from '@/firebase';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, limit } from 'firebase/firestore';
@@ -14,6 +14,7 @@ interface Message {
   createdAt: any;
 }
 
+/* AI Tools - временно отключены
 const addTaskTool: FunctionDeclaration = {
   name: "addTask",
   description: "Добавляет новую разовую задачу в список дел. Подберите категорию стата, который улучшит это действие.",
@@ -59,6 +60,7 @@ const addShoppingItemTool: FunctionDeclaration = {
     required: ["name"]
   }
 };
+*/
 
 export const Chat: React.FC = () => {
   const { user } = useStore();
@@ -93,6 +95,7 @@ export const Chat: React.FC = () => {
   }, [messages]);
 
   const handleFunctionCall = async (call: any) => {
+    /* AI функции временно отключены
     if (!user?.currentSpaceId) return { error: "No active space" };
 
     const { name, args } = call;
@@ -135,6 +138,8 @@ export const Chat: React.FC = () => {
       return { error: `Ошибка при выполнении ${name}` };
     }
     return { error: "Unknown function" };
+    */
+    return { error: "AI temporarily disabled" };
   };
 
   const sendMessage = async (e: React.FormEvent) => {
