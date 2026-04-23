@@ -28,17 +28,16 @@ export const SpaceSwitcher: React.FC<SpaceSwitcherProps> = ({ isOpen, onClose })
   useEffect(() => {
     if (!user?.uid) return;
 
-    // Get all spaces where user is owner
-    const spacesQuery = query(
-      collection(db, 'spaces'),
-      where('ownerId', '==', user.uid)
-    );
+    // Get all spaces and filter on client side
+    const spacesQuery = query(collection(db, 'spaces'));
 
     const unsubscribe = onSnapshot(spacesQuery, (snapshot) => {
-      const spaceData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Space));
+      const spaceData = snapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as Space))
+        .filter(space => space.ownerId === user.uid); // Filter on client
       setSpaces(spaceData);
     }, (error) => {
       console.error('Error fetching spaces:', error);
