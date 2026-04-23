@@ -106,7 +106,23 @@ export const Dashboard: React.FC = () => {
 
   if (!user) return null;
 
-  const today = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+  // Generate week calendar
+  const today = new Date();
+  const currentDay = today.getDate();
+  const currentMonth = today.getMonth();
+  const currentYear = today.getFullYear();
+
+  const weekDays = [];
+  for (let i = -3; i <= 3; i++) {
+    const date = new Date(currentYear, currentMonth, currentDay + i);
+    weekDays.push({
+      day: date.getDate(),
+      weekday: date.toLocaleDateString('ru-RU', { weekday: 'short' }).slice(0, 2).charAt(0).toUpperCase() + date.toLocaleDateString('ru-RU', { weekday: 'short' }).slice(1, 2),
+      isToday: i === 0,
+      date: date
+    });
+  }
+
   const filteredTasks = tasks.filter(t => {
     if (filter === 'active') return !t.completed;
     if (filter === 'completed') return t.completed;
@@ -125,6 +141,33 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-32">
+      {/* Week Calendar */}
+      <div className="bg-[#150a24]/50 border border-white/5 rounded-3xl p-4 overflow-x-auto">
+        <div className="flex gap-2 min-w-max">
+          {weekDays.map((day, index) => (
+            <div
+              key={index}
+              className={cn(
+                "flex flex-col items-center justify-center min-w-[50px] py-3 px-2 rounded-2xl transition-all",
+                day.isToday 
+                  ? "bg-accent-purple text-white shadow-[0_0_20px_rgba(139,92,246,0.4)]" 
+                  : "bg-transparent text-[#8b7ca8]"
+              )}
+            >
+              <span className="text-[10px] font-black uppercase tracking-wider mb-2 font-display">
+                {day.weekday}
+              </span>
+              <span className={cn(
+                "text-xl font-black font-display",
+                day.isToday && "glow-purple"
+              )}>
+                {day.day}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Profile Header */}
       <div className="bg-[#150a24]/50 border border-white/5 rounded-3xl p-6">
         <div className="flex items-center justify-between mb-4">
