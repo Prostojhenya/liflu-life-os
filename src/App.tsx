@@ -14,69 +14,104 @@ import { LogIn, Sparkles } from 'lucide-react';
 
 export default function App() {
   const { user, setUser, isAuthReady, setAuthReady, activeTab } = useStore();
+  const [error, setError] = React.useState<string | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
+    try {
+      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
         try {
-          const userRef = doc(db, 'users', firebaseUser.uid);
-          const userSnap = await getDoc(userRef);
-
-          let userData;
-          if (userSnap.exists()) {
-            userData = userSnap.data();
-          } else {
-            // New user setup
-            const spacePath = 'spaces';
+          if (firebaseUser) {
             try {
-              const personalSpaceRef = await addDoc(collection(db, spacePath), {
-                name: 'Personal Space',
-                type: 'personal',
-                ownerId: firebaseUser.uid,
-                createdAt: serverTimestamp(),
-              });
+              const userRef = doc(db, 'users', firebaseUser.uid);
+              const userSnap = await getDoc(userRef);
 
-              // Add member record
-              const memberPath = `spaces/${personalSpaceRef.id}/members`;
-              await setDoc(doc(db, memberPath, firebaseUser.uid), {
-                spaceId: personalSpaceRef.id,
-                userId: firebaseUser.uid,
-                role: 'admin',
-                joinedAt: serverTimestamp(),
-              });
+              let userData;
+              if (userSnap.exists()) {
+                userData = userSnap.data();
+              } else {
+                // New user setup
+                const spacePath = 'spaces';
+                try {
+                  const personalSpaceRef = await addDoc(collection(db, spacePath), {
+                    name: 'Personal Space',
+                    type: 'personal',
+                    ownerId: firebaseUser.uid,
+                    createdAt: serverTimestamp(),
+                  });
 
-              userData = {
-                uid: firebaseUser.uid,
-                email: firebaseUser.email,
-                displayName: firebaseUser.displayName || 'User',
-                photoURL: firebaseUser.photoURL || '',
-                totalXP: 0,
-                level: 0,
-                currentSpaceId: personalSpaceRef.id,
-                stats: INITIAL_STATS
-              };
-              await setDoc(userRef, userData);
-            } catch (e) {
-              handleFirestoreError(e, OperationType.WRITE, 'user-setup');
+                  // Add member record
+                  const memberPath = `spaces/${personalSpaceRef.id}/members`;
+                  await setDoc(doc(db, memberPath, firebaseUser.uid), {
+                    spaceId: personalSpaceRef.id,
+                    userId: firebaseUser.uid,
+                    role: 'admin',
+                    joinedAt: serverTimestamp(),
+                  });
+
+                  userData = {
+                    uid: firebaseUser.uid,
+                    email: firebaseUser.email,
+                    displayName: firebaseUser.displayName || 'User',
+                    photoURL: firebaseUser.photoURL || '',
+                    totalXP: 0,
+                    level: 0,
+                    currentSpaceId: personalSpaceRef.id,
+                    stats: INITIAL_STATS
+                  };
+                  await setDoc(userRef, userData);
+                } catch (e) {
+                  console.error("User setup error:", e);
+                  handleFirestoreError(e, OperationType.WRITE, 'user-setup');
+                }
+              }
+              
+              setUser({
+                ...userData,
+                stats: userData.stats || INITIAL_STATS,
+                level: calculateLevel(userData.totalXP || 0)
+              } as any);
+            } catch (error) {
+              console.error("Auth initialization error:", error);
+              setError("Ошибка инициализации пользователя");
             }
+          } else {
+            setUser(null);
           }
-          
-          setUser({
-            ...userData,
-            stats: userData.stats || INITIAL_STATS,
-            level: calculateLevel(userData.totalXP || 0)
-          } as any);
         } catch (error) {
-          console.error("Auth initialization error:", error);
+          console.error("Auth state change error:", error);
+          setError("Ошибка аутентификации");
+        } finally {
+          setAuthReady(true);
         }
-      } else {
-        setUser(null);
-      }
-      setAuthReady(true);
-    });
+      });
 
-    return () => unsubscribe();
+      return () => unsubscribe();
+    } catch (error) {
+      console.error("App initialization error:", error);
+      setError("Ошибка запуска приложения");
+      setAuthReady(true);
+    }
   }, []);
+
+  if (error) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-black p-6 text-center">
+        <div className="w-20 h-20 bg-red-600 rounded-[2.5rem] flex items-center justify-center text-white mb-8">
+          ⚠️
+        </div>
+        <h1 className="text-2xl font-black tracking-tight mb-4 text-white">Ошибка</h1>
+        <p className="text-gray-400 max-w-xs mb-8 leading-relaxed">
+          {error}
+        </p>
+        <button
+          onClick={() => window.location.reload()}
+          className="bg-white/10 border border-white/20 p-4 rounded-2xl text-white font-bold"
+        >
+          Перезагрузить
+        </button>
+      </div>
+    );
+  }
 
   if (!isAuthReady) {
     return (
