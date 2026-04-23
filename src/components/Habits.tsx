@@ -24,7 +24,8 @@ export const Habits: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
 
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  // AI временно отключен
+  // const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
   useEffect(() => {
     if (!user?.currentSpaceId) return;
@@ -51,7 +52,10 @@ export const Habits: React.FC = () => {
     
     setIsAdding(true);
     try {
-      // Auto-classify using Gemini
+      // AI классификация временно отключена - используем vitality по умолчанию
+      const finalStat = 'vitality';
+
+      /* AI код закомментирован
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: `Проанализируй привычку пользователя: "${newHabit}".
@@ -69,6 +73,7 @@ export const Habits: React.FC = () => {
       const finalStat = ['strength', 'agility', 'intelligence', 'vitality', 'sense'].includes(classifiedStat) 
         ? classifiedStat 
         : 'vitality';
+      */
 
       await addDoc(collection(db, `spaces/${user.currentSpaceId}/habits`), {
         title: newHabit,

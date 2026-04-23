@@ -23,7 +23,8 @@ export const Tasks: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
 
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  // AI временно отключен
+  // const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
   useEffect(() => {
     if (!user?.currentSpaceId) return;
@@ -52,7 +53,10 @@ export const Tasks: React.FC = () => {
     setIsAdding(true);
     const path = `spaces/${user.currentSpaceId}/tasks`;
     try {
-      // Auto-classify using Gemini
+      // AI классификация временно отключена - используем intelligence по умолчанию
+      const finalStat = 'intelligence';
+
+      /* AI код закомментирован
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: `Проанализируй задачу пользователя: "${newTask}".
@@ -70,6 +74,7 @@ export const Tasks: React.FC = () => {
       const finalStat = ['strength', 'agility', 'intelligence', 'vitality', 'sense'].includes(classifiedStat) 
         ? classifiedStat 
         : 'intelligence';
+      */
 
       await addDoc(collection(db, path), {
         title: newTask,
