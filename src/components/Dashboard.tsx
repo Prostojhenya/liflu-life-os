@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useStore, XP_VALUES, calculateLevel, STAT_LABELS } from '@/store/useStore';
 import { db, auth, handleFirestoreError, OperationType } from '@/firebase';
 import { collection, query, orderBy, onSnapshot, addDoc, updateDoc, doc, deleteDoc, serverTimestamp, where } from 'firebase/firestore';
@@ -30,6 +30,17 @@ export const Dashboard: React.FC = () => {
   const [newTask, setNewTask] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
+  const calendarRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to today on mount
+  useEffect(() => {
+    if (calendarRef.current) {
+      const todayElement = calendarRef.current.querySelector('[data-today="true"]');
+      if (todayElement) {
+        todayElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (!user?.currentSpaceId) return;
@@ -151,18 +162,19 @@ export const Dashboard: React.FC = () => {
             {currentMonthName}
           </span>
         </div>
-        <div className="overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-1">
-          <div className="flex gap-2 pb-2 px-1" style={{ width: 'max-content' }}>
+        <div ref={calendarRef} className="overflow-x-auto snap-x snap-mandatory scrollbar-hide">
+          <div className="flex gap-1.5 pb-2" style={{ width: 'max-content' }}>
             {weekDays.map((day, index) => (
               <div
                 key={index}
+                data-today={day.isToday}
                 className={cn(
                   "flex flex-col items-center justify-center snap-center py-3 rounded-2xl transition-all flex-shrink-0",
                   day.isToday 
                     ? "bg-accent-purple text-white shadow-[0_0_20px_rgba(139,92,246,0.4)]" 
                     : "bg-transparent text-[#8b7ca8]"
                 )}
-                style={{ width: 'calc((100vw - 56px) / 7)' }}
+                style={{ width: 'calc((100vw - 48px) / 7)' }}
               >
                 <span className="text-[10px] font-black uppercase tracking-wider mb-2 font-display">
                   {day.weekday}
