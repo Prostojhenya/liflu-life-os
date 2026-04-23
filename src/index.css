@@ -98,6 +98,19 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  .snap-x {
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+  }
+
+  .snap-center {
+    scroll-snap-align: center;
+  }
+
+  .snap-mandatory {
+    scroll-snap-stop: always;
+  }
 }
 
 .markdown-body {

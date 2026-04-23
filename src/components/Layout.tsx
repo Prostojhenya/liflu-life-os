@@ -20,8 +20,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   return (
     <div className="flex flex-col h-screen bg-[#0b0416] text-white font-sans overflow-hidden">
       {/* Header HUD - Only show full status if NOT on dashboard */}
-      <header className="px-6 pt-10 pb-2 shrink-0 z-20">
-        <div className="flex justify-between items-center h-12">
+      <header className="px-6 pt-6 pb-2 shrink-0 z-20">
+        <div className="flex justify-between items-center h-8">
           <div className="user-info">
             <h1 className="text-xl font-black tracking-tighter uppercase italic glow-purple font-display leading-tight">
               {activeTab === 'dashboard' ? '' : tabs.find(t => t.id === activeTab)?.label}

@@ -143,7 +143,7 @@ export const Dashboard: React.FC = () => {
   const xpProgress = Math.min(100, (user.totalXP / xpToNextLevel) * 100);
 
   return (
-    <div className="space-y-6 pb-32">
+    <div className="space-y-4 pb-32">
       {/* Week Calendar */}
       <div className="bg-[#150a24]/50 border border-white/5 rounded-3xl p-4">
         <div className="flex items-center justify-between mb-3 px-2">
@@ -151,17 +151,18 @@ export const Dashboard: React.FC = () => {
             {currentMonthName}
           </span>
         </div>
-        <div className="overflow-x-auto scrollbar-hide">
+        <div className="overflow-x-auto snap-x snap-mandatory scrollbar-hide">
           <div className="flex gap-3 pb-2" style={{ width: 'max-content' }}>
             {weekDays.map((day, index) => (
               <div
                 key={index}
                 className={cn(
-                  "flex flex-col items-center justify-center w-14 py-3 rounded-2xl transition-all flex-shrink-0",
+                  "flex flex-col items-center justify-center snap-center py-3 rounded-2xl transition-all flex-shrink-0",
                   day.isToday 
                     ? "bg-accent-purple text-white shadow-[0_0_20px_rgba(139,92,246,0.4)]" 
                     : "bg-transparent text-[#8b7ca8]"
                 )}
+                style={{ width: 'calc((100vw - 96px) / 7)' }}
               >
                 <span className="text-[10px] font-black uppercase tracking-wider mb-2 font-display">
                   {day.weekday}
