@@ -50,54 +50,54 @@ export const CreateHub: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0b0416] to-[#1a0b2e] p-6 pb-32">
+    <div className="h-full overflow-y-auto pb-32 px-6 pt-6">
       {/* Header */}
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-black text-white uppercase mb-2 font-display glow-purple">
+      <div className="text-center mb-6">
+        <h1 className="text-2xl font-black text-white uppercase mb-1 font-display glow-purple">
           Create Hub
         </h1>
-        <p className="text-sm text-[#8b7ca8] font-bold font-display">
+        <p className="text-[10px] text-[#8b7ca8] font-black uppercase tracking-[0.2em] font-display">
           Создание (AI)
         </p>
       </div>
 
       {/* Main Question */}
-      <div className="mb-8">
-        <h2 className="text-2xl font-black text-white mb-2 font-display">
+      <div className="mb-4">
+        <h2 className="text-xl font-black text-white mb-1 font-display">
           Что создаём?
         </h2>
-        <p className="text-sm text-[#8b7ca8] font-display">
+        <p className="text-xs text-[#8b7ca8] font-display">
           Опиши или используй AI
         </p>
       </div>
 
       {/* AI Icon */}
-      <div className="flex justify-center mb-8">
-        <div className="w-24 h-24 rounded-full bg-accent-purple/20 border-2 border-accent-purple flex items-center justify-center">
-          <Sparkles size={40} className="text-accent-purple" />
+      <div className="flex justify-center mb-4">
+        <div className="w-20 h-20 rounded-full bg-accent-purple/20 border-2 border-accent-purple flex items-center justify-center">
+          <Sparkles size={32} className="text-accent-purple" />
         </div>
       </div>
 
       {/* Input Area */}
-      <div className="mb-6 relative">
+      <div className="mb-4 relative">
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Напиши, что нужно сделать..."
-          className="w-full bg-[#150a24] border border-white/10 rounded-2xl p-5 pr-14 focus:outline-none focus:border-accent-purple transition-all text-base text-white placeholder:text-[#8b7ca8]/50 font-display resize-none"
-          rows={4}
+          className="w-full bg-[#150a24] border border-white/10 rounded-2xl p-4 pr-12 focus:outline-none focus:border-accent-purple transition-all text-sm text-white placeholder:text-[#8b7ca8]/50 font-display resize-none"
+          rows={3}
         />
-        <button className="absolute right-4 bottom-4 text-[#8b7ca8] hover:text-accent-purple transition-colors">
-          <Mic size={24} />
+        <button className="absolute right-3 bottom-3 text-[#8b7ca8] hover:text-accent-purple transition-colors">
+          <Mic size={20} />
         </button>
       </div>
 
       {/* Examples */}
-      <div className="mb-8">
-        <p className="text-xs text-[#8b7ca8] font-bold uppercase tracking-wider mb-3 font-display">
+      <div className="mb-4">
+        <p className="text-[10px] text-[#8b7ca8] font-black uppercase tracking-wider mb-2 font-display">
           Примеры:
         </p>
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {[
             'Тренировка завтра в 18:00',
             'Купить продукты на неделю',
@@ -106,7 +106,7 @@ export const CreateHub: React.FC = () => {
             <button
               key={i}
               onClick={() => setInput(example)}
-              className="block w-full text-left px-4 py-2 text-sm text-accent-purple font-display hover:bg-accent-purple/10 rounded-lg transition-colors"
+              className="block w-full text-left px-3 py-2 text-xs text-accent-purple font-display hover:bg-accent-purple/10 rounded-xl transition-colors"
             >
               {example}
             </button>
@@ -115,7 +115,7 @@ export const CreateHub: React.FC = () => {
       </div>
 
       {/* Type Selection */}
-      <div className="grid grid-cols-2 gap-3 mb-8">
+      <div className="grid grid-cols-2 gap-3 mb-4">
         {TASK_TYPES.map((type) => {
           const Icon = type.icon;
           const isSelected = selectedType === type.id;
@@ -124,7 +124,7 @@ export const CreateHub: React.FC = () => {
               key={type.id}
               whileTap={{ scale: 0.95 }}
               onClick={() => setSelectedType(type.id)}
-              className={`p-6 rounded-2xl border-2 transition-all ${
+              className={`p-4 rounded-2xl border-2 transition-all ${
                 isSelected
                   ? 'border-opacity-100 shadow-lg'
                   : 'border-white/10 hover:border-white/20'
@@ -135,12 +135,12 @@ export const CreateHub: React.FC = () => {
               }}
             >
               <Icon 
-                size={32} 
+                size={24} 
                 style={{ color: type.color }}
-                className="mb-3"
+                className="mb-2"
               />
               <p 
-                className="text-sm font-black uppercase font-display"
+                className="text-xs font-black uppercase font-display"
                 style={{ color: isSelected ? type.color : '#8b7ca8' }}
               >
                 {type.label}
@@ -154,14 +154,14 @@ export const CreateHub: React.FC = () => {
       <button
         onClick={handleCreate}
         disabled={!input.trim() || !selectedType || isCreating}
-        className="w-full bg-accent-purple text-white py-5 rounded-2xl font-black uppercase tracking-wider font-display flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(139,92,246,0.4)] active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-accent-purple text-white py-4 rounded-2xl font-black uppercase tracking-wider font-display flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(139,92,246,0.4)] active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
       >
         {isCreating ? (
           <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
         ) : (
           <>
             Создать
-            <ArrowRight size={20} />
+            <ArrowRight size={18} />
           </>
         )}
       </button>
