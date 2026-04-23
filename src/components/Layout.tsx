@@ -3,6 +3,7 @@ import { useStore } from '@/store/useStore';
 import { LayoutDashboard, CheckSquare, Repeat, ShoppingCart, MessageSquare, Target, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'motion/react';
+import { BottomNav } from './BottomNav';
 
 const tabs = [
   { id: 'dashboard', icon: LayoutDashboard, label: 'Главная' },
@@ -70,39 +71,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         </motion.div>
       </main>
 
-      {/* Futuristic Bottom Navigation */}
-      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-fit bg-[#150a24]/80 backdrop-blur-3xl border border-white/10 p-2 flex justify-center items-center z-50 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.5)] safe-area-bottom px-6 gap-2">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={cn(
-                "flex items-center gap-3 p-3.5 rounded-full transition-all duration-300 relative group",
-                isActive ? "bg-accent-magenta text-white shadow-[0_0_20px_rgba(255,0,212,0.4)]" : "text-[#8b7ca8] hover:text-white"
-              )}
-            >
-              <Icon size={18} strokeWidth={isActive ? 3 : 2} />
-              {isActive && (
-                <motion.span 
-                  initial={{ width: 0, opacity: 0 }}
-                  animate={{ width: 'auto', opacity: 1 }}
-                  className="text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap font-display"
-                >
-                  {tab.label}
-                </motion.span>
-              )}
-              {!isActive && (
-                <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-[#1b0e2b] text-white text-[8px] font-black py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-white/5 uppercase tracking-widest">
-                  {tab.label}
-                </div>
-              )}
-            </button>
-          );
-        })}
-      </nav>
+      {/* Bottom Navigation */}
+      <BottomNav />
     </div>
   );
 };
