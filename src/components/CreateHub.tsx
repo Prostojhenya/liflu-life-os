@@ -50,36 +50,16 @@ export const CreateHub: React.FC = () => {
   };
 
   return (
-    <div className="h-full overflow-y-auto pb-32 px-6 pt-6">
-      {/* Header */}
-      <div className="text-center mb-6">
-        <h1 className="text-2xl font-black text-white uppercase mb-1 font-display glow-purple">
-          Create Hub
-        </h1>
-        <p className="text-[10px] text-[#8b7ca8] font-black uppercase tracking-[0.2em] font-display">
-          Создание (AI)
-        </p>
-      </div>
-
-      {/* Main Question */}
-      <div className="mb-4">
-        <h2 className="text-xl font-black text-white mb-1 font-display">
-          Что создаём?
-        </h2>
-        <p className="text-xs text-[#8b7ca8] font-display">
-          Опиши или используй AI
-        </p>
-      </div>
-
+    <div className="h-full overflow-y-auto pb-32 px-6 pt-8 flex flex-col">
       {/* AI Icon */}
-      <div className="flex justify-center mb-4">
-        <div className="w-20 h-20 rounded-full bg-accent-purple/20 border-2 border-accent-purple flex items-center justify-center">
-          <Sparkles size={32} className="text-accent-purple" />
+      <div className="flex justify-center mb-6">
+        <div className="w-24 h-24 rounded-full bg-accent-purple/20 border-2 border-accent-purple flex items-center justify-center">
+          <Sparkles size={36} className="text-accent-purple" />
         </div>
       </div>
 
       {/* Input Area */}
-      <div className="mb-4 relative">
+      <div className="mb-5 relative">
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -93,7 +73,7 @@ export const CreateHub: React.FC = () => {
       </div>
 
       {/* Examples */}
-      <div className="mb-4">
+      <div className="mb-5">
         <p className="text-[10px] text-[#8b7ca8] font-black uppercase tracking-wider mb-2 font-display">
           Примеры:
         </p>
@@ -115,7 +95,7 @@ export const CreateHub: React.FC = () => {
       </div>
 
       {/* Type Selection */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
+      <div className="grid grid-cols-2 gap-3 mb-5">
         {TASK_TYPES.map((type) => {
           const Icon = type.icon;
           const isSelected = selectedType === type.id;
@@ -124,7 +104,7 @@ export const CreateHub: React.FC = () => {
               key={type.id}
               whileTap={{ scale: 0.95 }}
               onClick={() => setSelectedType(type.id)}
-              className={`p-4 rounded-2xl border-2 transition-all ${
+              className={`p-5 rounded-2xl border-2 transition-all flex flex-col items-center justify-center ${
                 isSelected
                   ? 'border-opacity-100 shadow-lg'
                   : 'border-white/10 hover:border-white/20'
@@ -135,7 +115,7 @@ export const CreateHub: React.FC = () => {
               }}
             >
               <Icon 
-                size={24} 
+                size={28} 
                 style={{ color: type.color }}
                 className="mb-2"
               />
