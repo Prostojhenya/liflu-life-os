@@ -32,5 +32,17 @@ export default defineConfig(({mode}) => {
     server: {
       hmr: process.env.DISABLE_HMR !== 'true',
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
+            'react-vendor': ['react', 'react-dom'],
+            'charts': ['recharts'],
+          }
+        }
+      },
+      chunkSizeWarningLimit: 1000,
+    },
   };
 });
