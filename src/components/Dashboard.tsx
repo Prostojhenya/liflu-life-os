@@ -106,14 +106,14 @@ export const Dashboard: React.FC = () => {
 
   if (!user) return null;
 
-  // Generate week calendar (extended for infinite scroll effect)
+  // Generate week calendar (exactly 7 days visible)
   const today = new Date();
   const currentDay = today.getDate();
   const currentMonth = today.getMonth();
   const currentYear = today.getFullYear();
 
   const weekDays = [];
-  for (let i = -15; i <= 15; i++) {
+  for (let i = -10; i <= 10; i++) {
     const date = new Date(currentYear, currentMonth, currentDay + i);
     weekDays.push({
       day: date.getDate(),
@@ -129,7 +129,7 @@ export const Dashboard: React.FC = () => {
   const filteredTasks = tasks.filter(t => {
     if (filter === 'active') return !t.completed;
     if (filter === 'completed') return t.completed;
-    return true;
+    return !t.completed; // По умолчанию показываем только активные
   });
 
   const completedToday = tasks.filter(t => t.completed).length;
@@ -151,8 +151,8 @@ export const Dashboard: React.FC = () => {
             {currentMonthName}
           </span>
         </div>
-        <div className="overflow-x-auto snap-x snap-mandatory scrollbar-hide">
-          <div className="flex gap-3 pb-2" style={{ width: 'max-content' }}>
+        <div className="overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-1">
+          <div className="flex gap-2 pb-2 px-1" style={{ width: 'max-content' }}>
             {weekDays.map((day, index) => (
               <div
                 key={index}
@@ -162,7 +162,7 @@ export const Dashboard: React.FC = () => {
                     ? "bg-accent-purple text-white shadow-[0_0_20px_rgba(139,92,246,0.4)]" 
                     : "bg-transparent text-[#8b7ca8]"
                 )}
-                style={{ width: 'calc((100vw - 96px) / 7)' }}
+                style={{ width: 'calc((100vw - 56px) / 7)' }}
               >
                 <span className="text-[10px] font-black uppercase tracking-wider mb-2 font-display">
                   {day.weekday}
@@ -230,9 +230,17 @@ export const Dashboard: React.FC = () => {
               {completedToday}/{totalToday} выполнено
             </p>
           </div>
-          <button className="flex items-center gap-2 px-3 py-2 bg-[#150a24] border border-white/5 rounded-xl text-xs font-black text-[#8b7ca8] uppercase tracking-wider font-display">
+          <button 
+            onClick={() => setFilter(filter === 'active' ? 'all' : 'active')}
+            className={cn(
+              "flex items-center gap-2 px-3 py-2 border rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all",
+              filter === 'active' 
+                ? "bg-[#150a24] border-white/5 text-[#8b7ca8]" 
+                : "bg-accent-purple/10 border-accent-purple/30 text-accent-purple"
+            )}
+          >
             <Filter size={14} />
-            Фильтр
+            {filter === 'active' ? 'Все' : 'Активные'}
           </button>
         </div>
 
