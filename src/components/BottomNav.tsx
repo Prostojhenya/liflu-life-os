@@ -16,8 +16,7 @@ export const BottomNav: React.FC = () => {
 
   const handleNavClick = (id: string) => {
     if (id === 'add') {
-      // Handle add action - можно открыть модальное окно или меню
-      console.log('Add button clicked');
+      setActiveTab('create');
       return;
     }
     if (id === 'profile') {
