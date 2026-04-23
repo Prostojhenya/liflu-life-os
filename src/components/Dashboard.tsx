@@ -45,6 +45,16 @@ export const Dashboard: React.FC = () => {
     }
   }, []);
 
+  // Scroll to selected date when it changes
+  useEffect(() => {
+    if (calendarRef.current) {
+      const selectedElement = calendarRef.current.querySelector('[data-selected="true"]');
+      if (selectedElement) {
+        selectedElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }
+  }, [selectedDate]);
+
   // Update visible month on scroll
   useEffect(() => {
     const handleScroll = () => {
@@ -184,8 +194,8 @@ export const Dashboard: React.FC = () => {
   const isPastDate = selectedDate < today && !isToday;
   const isFutureDate = selectedDate > today && !isToday;
 
+  // For now, show all tasks only for today (in future, filter by task date)
   const filteredTasks = tasks.filter(t => {
-    // Only show tasks for today
     if (!isToday) return false;
     
     if (filter === 'active') return !t.completed;
@@ -223,6 +233,7 @@ export const Dashboard: React.FC = () => {
                 <button
                   key={index}
                   data-today={day.isToday}
+                  data-selected={isSelected}
                   data-month={day.month}
                   onClick={() => setSelectedDate(day.date)}
                   className={cn(
@@ -300,37 +311,41 @@ export const Dashboard: React.FC = () => {
             <h2 className="text-2xl font-black text-white uppercase font-display mb-1">
               {isToday ? 'Сегодня' : selectedDateStr}
             </h2>
-            <p className="text-xs text-[#8b7ca8] font-bold uppercase tracking-wider font-display">
-              {completedToday}/{totalToday} выполнено
-            </p>
-          </div>
-          <button 
-            onClick={() => setFilter(filter === 'active' ? 'all' : 'active')}
-            className={cn(
-              "flex items-center gap-2 px-3 py-2 border rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all",
-              filter === 'active' 
-                ? "bg-[#150a24] border-white/5 text-[#8b7ca8]" 
-                : "bg-accent-purple/10 border-accent-purple/30 text-accent-purple"
+            {isToday && (
+              <p className="text-xs text-[#8b7ca8] font-bold uppercase tracking-wider font-display">
+                {completedToday}/{totalToday} выполнено
+              </p>
             )}
-          >
-            <Filter size={14} />
-            {filter === 'active' ? 'Все' : 'Активные'}
-          </button>
+          </div>
+          {isToday && (
+            <button 
+              onClick={() => setFilter(filter === 'active' ? 'all' : 'active')}
+              className={cn(
+                "flex items-center gap-2 px-3 py-2 border rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all",
+                filter === 'active' 
+                  ? "bg-[#150a24] border-white/5 text-[#8b7ca8]" 
+                  : "bg-accent-purple/10 border-accent-purple/30 text-accent-purple"
+              )}
+            >
+              <Filter size={14} />
+              {filter === 'active' ? 'Все' : 'Активные'}
+            </button>
+          )}
         </div>
 
-        {/* Add Task Form - moved to top */}
+        {/* Add Task Form - works for any date */}
         <form onSubmit={addTask} className="mb-4 relative">
           <input
             type="text"
             value={newTask}
             onChange={(e) => setNewTask(e.target.value)}
-            placeholder="Добавить задачу..."
+            placeholder={isFutureDate ? "Запланировать задачу..." : "Добавить задачу..."}
             className="w-full bg-[#0b0416] border border-white/10 rounded-2xl py-4 pl-5 pr-16 focus:outline-none focus:border-accent-purple transition-all text-base font-bold text-white placeholder:text-[#8b7ca8]/50 font-display"
-            disabled={isAdding || !isToday}
+            disabled={isAdding || isPastDate}
           />
           <button 
             type="submit"
-            disabled={isAdding || !newTask.trim() || !isToday}
+            disabled={isAdding || !newTask.trim() || isPastDate}
             className="absolute right-2 top-2 bottom-2 w-12 bg-accent-purple text-white rounded-xl flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50 shadow-[0_0_15px_rgba(139,92,246,0.3)]"
           >
             <Plus size={20} strokeWidth={3} />
