@@ -19,16 +19,18 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
   return (
     <div className="flex flex-col h-screen bg-[#0b0416] text-white font-sans overflow-hidden">
-      {/* Header HUD - Only show full status if NOT on dashboard */}
-      <header className="px-6 pt-6 pb-2 shrink-0 z-20">
-        <div className="flex justify-between items-center h-8">
-          <div className="user-info">
-            <h1 className="text-xl font-black tracking-tighter uppercase italic glow-purple font-display leading-tight">
-              {activeTab === 'dashboard' ? '' : tabs.find(t => t.id === activeTab)?.label}
-            </h1>
+      {/* Header HUD - Only show title for non-dashboard tabs */}
+      {activeTab !== 'dashboard' && (
+        <header className="px-6 pt-6 pb-2 shrink-0 z-20">
+          <div className="flex justify-between items-center h-8">
+            <div className="user-info">
+              <h1 className="text-xl font-black tracking-tighter uppercase italic glow-purple font-display leading-tight">
+                {tabs.find(t => t.id === activeTab)?.label}
+              </h1>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
       {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto pb-32 custom-scrollbar">
@@ -37,7 +39,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          className="p-5 max-w-4xl mx-auto"
+          className={cn("p-5 max-w-4xl mx-auto", activeTab === 'dashboard' && "pt-6")}
         >
           {children}
         </motion.div>
