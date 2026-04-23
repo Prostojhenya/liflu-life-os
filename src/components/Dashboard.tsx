@@ -343,24 +343,19 @@ export const Dashboard: React.FC = () => {
           )}
         </div>
 
-        {/* Add Task Form - works for any date */}
-        <form onSubmit={addTask} className="mb-4 relative">
-          <input
-            type="text"
-            value={newTask}
-            onChange={(e) => setNewTask(e.target.value)}
-            placeholder={isFutureDate ? "Запланировать задачу..." : "Добавить задачу..."}
-            className="w-full bg-[#0b0416] border border-white/10 rounded-2xl py-4 pl-5 pr-16 focus:outline-none focus:border-accent-purple transition-all text-base font-bold text-white placeholder:text-[#8b7ca8]/50 font-display"
-            disabled={isAdding || isPastDate}
-          />
+        {/* Add Task Button */}
+        <div className="mb-4 flex justify-end">
           <button 
-            type="submit"
-            disabled={isAdding || !newTask.trim() || isPastDate}
-            className="absolute right-2 top-2 bottom-2 w-12 bg-accent-purple text-white rounded-xl flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50 shadow-[0_0_15px_rgba(139,92,246,0.3)]"
+            onClick={(e) => {
+              e.preventDefault();
+              // TODO: открыть модальное окно для добавления задачи
+            }}
+            disabled={isAdding || isPastDate}
+            className="w-14 h-14 bg-accent-purple text-white rounded-2xl flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50 shadow-[0_0_15px_rgba(139,92,246,0.3)]"
           >
-            <Plus size={20} strokeWidth={3} />
+            <Plus size={24} strokeWidth={3} />
           </button>
-        </form>
+        </div>
 
         {/* Tasks List or Empty State */}
         {!isToday && filteredTasks.length === 0 ? (
