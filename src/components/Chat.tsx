@@ -68,7 +68,8 @@ export const Chat: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  // AI временно отключен
+  // const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
   useEffect(() => {
     if (!user?.currentSpaceId) return;
@@ -154,6 +155,15 @@ export const Chat: React.FC = () => {
         spaceId: user.currentSpaceId
       });
 
+      // AI временно отключен
+      await addDoc(collection(db, `spaces/${user.currentSpaceId}/messages`), {
+        text: "AI помощник временно отключен. Используйте разделы Задачи, Привычки и Покупки для управления.",
+        isAi: true,
+        createdAt: serverTimestamp(),
+        spaceId: user.currentSpaceId
+      });
+
+      /* AI код закомментирован
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         config: {
@@ -208,9 +218,10 @@ export const Chat: React.FC = () => {
           spaceId: user.currentSpaceId
         });
       }
+      */
     } catch (err: any) {
       console.error("Chat Error:", err);
-      setError("Ошибка связи с ИИ. Пожалуйста, попробуйте позже.");
+      setError("Ошибка отправки сообщения.");
     } finally {
       setIsTyping(false);
     }
