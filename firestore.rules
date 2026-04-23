@@ -101,8 +101,14 @@ service cloud.firestore {
     }
 
     match /spaces/{spaceId} {
-      allow read: if isSignedIn() && (existing().ownerId == request.auth.uid || isMember(spaceId));
-      allow list: if isSignedIn();
+      allow get: if isSignedIn() && (existing().ownerId == request.auth.uid || isMember(spaceId));
+      allow list: if isSignedIn() && (
+        request.query.limit <= 50 &&
+        (
+          !('where' in request.query) ||
+          (request.query.where.size() == 1 && request.query.where[0][0] == 'ownerId' && request.query.where[0][2] == request.auth.uid)
+        )
+      );
       allow create: if isSignedIn() && isValidSpace(incoming()) && incoming().ownerId == request.auth.uid;
       allow update: if isSignedIn() && (isAdmin(spaceId));
 
