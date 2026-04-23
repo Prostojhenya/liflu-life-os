@@ -161,7 +161,7 @@ export const Tasks: React.FC = () => {
           onChange={(e) => setNewTask(e.target.value)}
           placeholder={isAdding ? "СИСТЕМА АНАЛИЗИРУЕТ..." : "НОВАЯ МИССИЯ..."}
           disabled={isAdding}
-          className="w-full bg-[#150a24] border border-white/5 rounded-2xl py-4 pl-5 pr-14 focus:outline-none focus:border-accent-magenta transition-all shadow-2xl text-[12px] font-black uppercase tracking-widest text-white placeholder:text-[#8b7ca8]/30 font-display italic disabled:opacity-50"
+          className="w-full bg-[#150a24] border border-white/5 rounded-2xl py-4 pl-5 pr-14 focus:outline-none focus:border-accent-magenta transition-all shadow-2xl text-base font-black uppercase tracking-widest text-white placeholder:text-[#8b7ca8]/30 font-display italic disabled:opacity-50"
         />
         <button 
           type="submit" 

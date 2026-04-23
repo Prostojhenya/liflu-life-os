@@ -308,7 +308,7 @@ export const Chat: React.FC = () => {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="ВВЕДИТЕ КОМАНДУ..."
-          className="w-full bg-[#0b0416] border border-white/10 rounded-2xl py-4 pl-5 pr-14 focus:outline-none focus:border-accent-magenta transition-all shadow-2xl text-[12px] font-black uppercase tracking-widest text-white placeholder:text-[#8b7ca8]/30 font-display italic"
+          className="w-full bg-[#0b0416] border border-white/10 rounded-2xl py-4 pl-5 pr-14 focus:outline-none focus:border-accent-magenta transition-all shadow-2xl text-base font-black uppercase tracking-widest text-white placeholder:text-[#8b7ca8]/30 font-display italic"
         />
         <button 
           type="submit"

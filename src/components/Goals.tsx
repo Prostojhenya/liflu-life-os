@@ -83,7 +83,7 @@ export const Goals: React.FC = () => {
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}
           placeholder="Назови свою цель..."
-          className="w-full bg-[#0b0416] border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-accent-magenta transition-all text-[12px] font-black uppercase tracking-widest text-white placeholder:text-[#8b7ca8]/30 italic font-display"
+          className="w-full bg-[#0b0416] border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-accent-magenta transition-all text-base font-black uppercase tracking-widest text-white placeholder:text-[#8b7ca8]/30 italic font-display"
         />
         <div className="flex items-center gap-4">
           <div className="flex-1">
@@ -94,7 +94,7 @@ export const Goals: React.FC = () => {
               type="number"
               value={newTarget}
               onChange={(e) => setNewTarget(Number(e.target.value))}
-              className="w-full bg-[#0b0416] border border-white/5 rounded-xl py-2 px-4 focus:outline-none focus:border-accent-magenta transition-all text-xs font-black text-white font-display"
+              className="w-full bg-[#0b0416] border border-white/5 rounded-xl py-2 px-4 focus:outline-none focus:border-accent-magenta transition-all text-base font-black text-white font-display"
             />
           </div>
           <button 

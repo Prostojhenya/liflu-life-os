@@ -145,7 +145,7 @@ export const Habits: React.FC = () => {
           onChange={(e) => setNewHabit(e.target.value)}
           placeholder={isAdding ? "СИНХРОНИЗАЦИЯ С СИСТЕМОЙ..." : "ИЗУЧЕНИЕ НОВОГО НАВЫКА..."}
           disabled={isAdding}
-          className="w-full bg-[#150a24] border border-white/5 rounded-2xl py-4 pl-5 pr-14 focus:outline-none focus:border-accent-magenta transition-all shadow-2xl text-xs font-black uppercase tracking-widest text-white placeholder:text-[#8b7ca8]/30 font-display italic disabled:opacity-50"
+          className="w-full bg-[#150a24] border border-white/5 rounded-2xl py-4 pl-5 pr-14 focus:outline-none focus:border-accent-magenta transition-all shadow-2xl text-base font-black uppercase tracking-widest text-white placeholder:text-[#8b7ca8]/30 font-display italic disabled:opacity-50"
         />
         <button 
           type="submit" 

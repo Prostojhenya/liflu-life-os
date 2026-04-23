@@ -60,7 +60,7 @@ export const Shopping: React.FC = () => {
           value={newItem}
           onChange={(e) => setNewItem(e.target.value)}
           placeholder="Добавить новый предмет..."
-          className="w-full bg-[#150a24] border border-white/5 rounded-2xl py-4 pl-5 pr-14 focus:outline-none focus:border-accent-magenta transition-all shadow-2xl text-[12px] font-black uppercase tracking-widest text-white placeholder:text-[#8b7ca8]/30 font-display italic"
+          className="w-full bg-[#150a24] border border-white/5 rounded-2xl py-4 pl-5 pr-14 focus:outline-none focus:border-accent-magenta transition-all shadow-2xl text-base font-black uppercase tracking-widest text-white placeholder:text-[#8b7ca8]/30 font-display italic"
         />
         <button type="submit" className="absolute right-2 top-2 bottom-2 w-10 bg-accent-magenta text-white rounded-xl flex items-center justify-center shadow-[0_0_15px_#ff00d4] active:scale-95 transition-transform">
           <Plus size={20} />

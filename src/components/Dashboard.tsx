@@ -252,7 +252,7 @@ export const Dashboard: React.FC = () => {
             value={newTask}
             onChange={(e) => setNewTask(e.target.value)}
             placeholder="Добавить задачу..."
-            className="w-full bg-[#0b0416] border border-white/10 rounded-2xl py-4 pl-5 pr-16 focus:outline-none focus:border-accent-purple transition-all text-sm font-bold text-white placeholder:text-[#8b7ca8]/50 font-display"
+            className="w-full bg-[#0b0416] border border-white/10 rounded-2xl py-4 pl-5 pr-16 focus:outline-none focus:border-accent-purple transition-all text-base font-bold text-white placeholder:text-[#8b7ca8]/50 font-display"
             disabled={isAdding}
           />
           <button 
