@@ -30,6 +30,7 @@ export const Dashboard: React.FC = () => {
   const [newTask, setNewTask] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
+  const [isExpanded, setIsExpanded] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
 
   // Scroll to today on mount
@@ -117,14 +118,14 @@ export const Dashboard: React.FC = () => {
 
   if (!user) return null;
 
-  // Generate week calendar (exactly 7 days visible)
+  // Generate week calendar (more days for infinite scroll effect)
   const today = new Date();
   const currentDay = today.getDate();
   const currentMonth = today.getMonth();
   const currentYear = today.getFullYear();
 
   const weekDays = [];
-  for (let i = -10; i <= 10; i++) {
+  for (let i = -30; i <= 30; i++) {
     const date = new Date(currentYear, currentMonth, currentDay + i);
     weekDays.push({
       day: date.getDate(),
@@ -142,6 +143,9 @@ export const Dashboard: React.FC = () => {
     if (filter === 'completed') return t.completed;
     return !t.completed; // По умолчанию показываем только активные
   });
+
+  const displayedTasks = isExpanded ? filteredTasks : filteredTasks.slice(0, 3);
+  const hasMoreTasks = filteredTasks.length > 3;
 
   const completedToday = tasks.filter(t => t.completed).length;
   const totalToday = tasks.length;
@@ -256,10 +260,29 @@ export const Dashboard: React.FC = () => {
           </button>
         </div>
 
+        {/* Add Task Form - moved to top */}
+        <form onSubmit={addTask} className="mb-4 relative">
+          <input
+            type="text"
+            value={newTask}
+            onChange={(e) => setNewTask(e.target.value)}
+            placeholder="Добавить задачу..."
+            className="w-full bg-[#0b0416] border border-white/10 rounded-2xl py-4 pl-5 pr-16 focus:outline-none focus:border-accent-purple transition-all text-base font-bold text-white placeholder:text-[#8b7ca8]/50 font-display"
+            disabled={isAdding}
+          />
+          <button 
+            type="submit"
+            disabled={isAdding || !newTask.trim()}
+            className="absolute right-2 top-2 bottom-2 w-12 bg-accent-purple text-white rounded-xl flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50 shadow-[0_0_15px_rgba(139,92,246,0.3)]"
+          >
+            <Plus size={20} strokeWidth={3} />
+          </button>
+        </form>
+
         {/* Tasks List */}
         <div className="space-y-3">
           <AnimatePresence>
-            {filteredTasks.map((task) => (
+            {displayedTasks.map((task) => (
               <motion.div
                 key={task.id}
                 initial={{ opacity: 0, x: -20 }}
@@ -319,24 +342,17 @@ export const Dashboard: React.FC = () => {
           </AnimatePresence>
         </div>
 
-        {/* Add Task Form */}
-        <form onSubmit={addTask} className="mt-4 relative">
-          <input
-            type="text"
-            value={newTask}
-            onChange={(e) => setNewTask(e.target.value)}
-            placeholder="Добавить задачу..."
-            className="w-full bg-[#0b0416] border border-white/10 rounded-2xl py-4 pl-5 pr-16 focus:outline-none focus:border-accent-purple transition-all text-base font-bold text-white placeholder:text-[#8b7ca8]/50 font-display"
-            disabled={isAdding}
-          />
-          <button 
-            type="submit"
-            disabled={isAdding || !newTask.trim()}
-            className="absolute right-2 top-2 bottom-2 w-12 bg-accent-purple text-white rounded-xl flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50 shadow-[0_0_15px_rgba(139,92,246,0.3)]"
+        {/* Expand button */}
+        {hasMoreTasks && (
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="w-full mt-4 py-3 bg-[#150a24]/50 border border-white/5 rounded-2xl text-xs font-black text-[#8b7ca8] uppercase tracking-wider font-display hover:border-accent-purple/30 transition-all flex items-center justify-center gap-2"
           >
-            <Plus size={20} strokeWidth={3} />
-          </button>
-        </form>
+            {isExpanded ? '↑ Свернуть' : `↓ Показать еще ${filteredTasks.length - 3}`}
+          </motion.button>
+        )}
       </div>
 
       {/* Stats Section */}
