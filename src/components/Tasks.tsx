@@ -154,18 +154,7 @@ export const Tasks: React.FC = () => {
         <p className="text-[#8b7ca8] text-[10px] font-black uppercase tracking-[0.2em] font-display">Выполняй задания для получения XP</p>
       </header>
 
-      <div className="flex justify-end">
-        <button 
-          onClick={(e) => {
-            e.preventDefault();
-            // TODO: открыть модальное окно для добавления задачи
-          }}
-          disabled={isAdding}
-          className="w-14 h-14 bg-accent-magenta text-white rounded-2xl flex items-center justify-center shadow-[0_0_15px_#ff00d4] active:scale-95 transition-transform disabled:opacity-50"
-        >
-          {isAdding ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Plus size={24} />}
-        </button>
-      </div>
+
 
       <div className="space-y-4">
         <AnimatePresence mode="popLayout">

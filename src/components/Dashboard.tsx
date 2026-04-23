@@ -343,19 +343,7 @@ export const Dashboard: React.FC = () => {
           )}
         </div>
 
-        {/* Add Task Button */}
-        <div className="mb-4 flex justify-end">
-          <button 
-            onClick={(e) => {
-              e.preventDefault();
-              // TODO: открыть модальное окно для добавления задачи
-            }}
-            disabled={isAdding || isPastDate}
-            className="w-14 h-14 bg-accent-purple text-white rounded-2xl flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50 shadow-[0_0_15px_rgba(139,92,246,0.3)]"
-          >
-            <Plus size={24} strokeWidth={3} />
-          </button>
-        </div>
+
 
         {/* Tasks List or Empty State */}
         {!isToday && filteredTasks.length === 0 ? (
