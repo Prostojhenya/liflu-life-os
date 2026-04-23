@@ -36,7 +36,7 @@ export const BottomNav: React.FC = () => {
     <nav className="fixed bottom-6 left-4 right-4 z-50">
       <div className="bg-[#0a0a0f]/95 backdrop-blur-xl border border-white/5 rounded-3xl shadow-2xl">
         <div className="px-6 py-3">
-          <div className="grid grid-cols-5 items-center gap-4">
+          <div className="grid grid-cols-5 items-end gap-4">
             {/* Left items */}
             {leftItems.map((item) => {
               const Icon = item.icon;
@@ -57,12 +57,12 @@ export const BottomNav: React.FC = () => {
             })}
 
             {/* Center button */}
-            <div className="flex justify-center">
+            <div className="flex flex-col items-center">
               <button
                 onClick={() => handleNavClick(centerItem.id)}
-                className="w-16 h-16 -mt-8 bg-gradient-to-br from-[#7c3aed] to-[#a855f7] rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(124,58,237,0.5)] active:scale-95 transition-transform"
+                className="w-14 h-14 -mt-6 bg-gradient-to-br from-[#7c3aed] to-[#a855f7] rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(124,58,237,0.5)] active:scale-95 transition-transform mb-1"
               >
-                <Plus size={28} strokeWidth={2.5} className="text-white" />
+                <Plus size={26} strokeWidth={2.5} className="text-white" />
               </button>
             </div>
 
