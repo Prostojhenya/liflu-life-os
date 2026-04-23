@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useStore } from '@/store/useStore';
-import { LayoutDashboard, CheckSquare, Repeat, ShoppingCart, MessageSquare, Target, User, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, Repeat, ShoppingCart, MessageSquare, Target, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'motion/react';
 import { BottomNav } from './BottomNav';
-import { SpaceSwitcher } from './SpaceSwitcher';
 
 const tabs = [
   { id: 'dashboard', icon: LayoutDashboard, label: 'Главная' },
@@ -17,7 +16,6 @@ const tabs = [
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { activeTab, setActiveTab, user } = useStore();
-  const [isSpaceSwitcherOpen, setIsSpaceSwitcherOpen] = useState(false);
 
   return (
     <div className="flex flex-col h-screen bg-[#0b0416] text-white font-sans overflow-hidden">
@@ -34,27 +32,21 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         </header>
       )}
 
-      {/* Space Switcher Button - Always visible */}
+      {/* Space Info - Display only */}
       <div className="px-6 pt-4 pb-2 shrink-0 z-20">
-        <button
-          onClick={() => setIsSpaceSwitcherOpen(true)}
-          className="w-full bg-[#150a24] border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between hover:border-accent-purple/30 transition-all"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-accent-purple/20 rounded-full flex items-center justify-center">
-              <span className="text-accent-purple text-sm font-black">🏠</span>
-            </div>
-            <div className="text-left">
-              <p className="text-xs font-black text-white uppercase font-display">
-                Personal Space
-              </p>
-              <p className="text-[8px] text-[#8b7ca8] font-display">
-                Личное пространство
-              </p>
-            </div>
+        <div className="w-full bg-[#150a24] border border-white/10 rounded-2xl px-4 py-3 flex items-center gap-3">
+          <div className="w-8 h-8 bg-accent-purple/20 rounded-full flex items-center justify-center">
+            <span className="text-accent-purple text-sm font-black">🏠</span>
           </div>
-          <ChevronDown size={16} className="text-[#8b7ca8]" />
-        </button>
+          <div className="text-left">
+            <p className="text-xs font-black text-white uppercase font-display">
+              Personal Space
+            </p>
+            <p className="text-[8px] text-[#8b7ca8] font-display">
+              Личное пространство
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Main Content Area */}
@@ -72,12 +64,6 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
       {/* Bottom Navigation */}
       <BottomNav />
-
-      {/* Space Switcher Modal */}
-      <SpaceSwitcher 
-        isOpen={isSpaceSwitcherOpen} 
-        onClose={() => setIsSpaceSwitcherOpen(false)} 
-      />
     </div>
   );
 };
