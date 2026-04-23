@@ -16,7 +16,10 @@ export default defineConfig(({mode}) => {
           name: 'Liflu - Life OS',
           short_name: 'Liflu',
           description: 'Your personal Life OS for tasks, habits, and goals.',
-          theme_color: '#ffffff',
+          theme_color: '#0b0416',
+          background_color: '#0b0416',
+          display: 'standalone',
+          orientation: 'portrait',
           icons: []
         }
       })
