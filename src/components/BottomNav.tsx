@@ -33,59 +33,61 @@ export const BottomNav: React.FC = () => {
   const rightItems = navItems.slice(3);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-[#0a0a0f]/95 backdrop-blur-xl border-t border-white/5 safe-area-bottom z-50">
-      <div className="max-w-2xl mx-auto px-4 py-3">
-        <div className="flex items-center justify-between relative">
-          {/* Left items */}
-          <div className="flex items-center gap-2 flex-1 justify-start">
-            {leftItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleNavClick(item.id)}
-                  className={cn(
-                    "flex flex-col items-center gap-1 py-2 px-4 transition-colors",
-                    isActive ? "text-white" : "text-[#6b7280]"
-                  )}
-                >
-                  <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
-                  <span className="text-[10px] font-medium">{item.label}</span>
-                </button>
-              );
-            })}
-          </div>
+    <nav className="fixed bottom-6 left-4 right-4 z-50">
+      <div className="bg-[#0a0a0f]/95 backdrop-blur-xl border border-white/5 rounded-3xl shadow-2xl">
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between relative">
+            {/* Left items */}
+            <div className="flex items-center gap-2 flex-1 justify-start">
+              {leftItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleNavClick(item.id)}
+                    className={cn(
+                      "flex flex-col items-center gap-1 py-2 px-4 transition-colors",
+                      isActive ? "text-white" : "text-[#6b7280]"
+                    )}
+                  >
+                    <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
+                    <span className="text-[10px] font-medium">{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
 
-          {/* Center button */}
-          <div className="flex-shrink-0 px-4">
-            <button
-              onClick={() => handleNavClick(centerItem.id)}
-              className="w-16 h-16 -mt-8 bg-gradient-to-br from-[#7c3aed] to-[#a855f7] rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(124,58,237,0.5)] active:scale-95 transition-transform"
-            >
-              <Plus size={28} strokeWidth={2.5} className="text-white" />
-            </button>
-          </div>
+            {/* Center button */}
+            <div className="flex-shrink-0 px-4">
+              <button
+                onClick={() => handleNavClick(centerItem.id)}
+                className="w-16 h-16 -mt-8 bg-gradient-to-br from-[#7c3aed] to-[#a855f7] rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(124,58,237,0.5)] active:scale-95 transition-transform"
+              >
+                <Plus size={28} strokeWidth={2.5} className="text-white" />
+              </button>
+            </div>
 
-          {/* Right items */}
-          <div className="flex items-center gap-2 flex-1 justify-end">
-            {rightItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleNavClick(item.id)}
-                  className={cn(
-                    "flex flex-col items-center gap-1 py-2 px-4 transition-colors",
-                    isActive ? "text-white" : "text-[#6b7280]"
-                  )}
-                >
-                  <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
-                  <span className="text-[10px] font-medium">{item.label}</span>
-                </button>
-              );
-            })}
+            {/* Right items */}
+            <div className="flex items-center gap-2 flex-1 justify-end">
+              {rightItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleNavClick(item.id)}
+                    className={cn(
+                      "flex flex-col items-center gap-1 py-2 px-4 transition-colors",
+                      isActive ? "text-white" : "text-[#6b7280]"
+                    )}
+                  >
+                    <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
+                    <span className="text-[10px] font-medium">{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
