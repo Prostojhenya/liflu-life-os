@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-// import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
 import { useStore, XP_VALUES } from '@/store/useStore';
 import { db } from '@/firebase';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, limit } from 'firebase/firestore';

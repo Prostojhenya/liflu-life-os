@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db, auth, handleFirestoreError, OperationType } from '@/firebase';
 import { collection, query, where, onSnapshot, addDoc, updateDoc, doc, deleteDoc, serverTimestamp, orderBy } from 'firebase/firestore';
-// import { GoogleGenAI } from "@google/genai";
 import { useStore, XP_VALUES, calculateLevel, STAT_LABELS } from '@/store/useStore';
 import { Plus, CheckCircle2, Circle, Trash2, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
