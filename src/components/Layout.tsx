@@ -23,9 +23,6 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       <header className="px-6 pt-10 pb-2 shrink-0 z-20">
         <div className="flex justify-between items-center h-12">
           <div className="user-info">
-             <p className="text-[9px] text-accent-magenta font-black uppercase tracking-[0.4em] glow-magenta mb-1 font-display">
-              {new Date().toLocaleDateString('ru-RU', { weekday: 'short', month: 'short', day: 'numeric' }).replace('.', '')}
-            </p>
             <h1 className="text-xl font-black tracking-tighter uppercase italic glow-purple font-display leading-tight">
               {activeTab === 'dashboard' ? '' : tabs.find(t => t.id === activeTab)?.label}
             </h1>
