@@ -32,6 +32,7 @@ export const Dashboard: React.FC = () => {
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('active');
   const [isExpanded, setIsExpanded] = useState(false);
   const [visibleMonth, setVisibleMonth] = useState('');
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const calendarRef = useRef<HTMLDivElement>(null);
 
   // Scroll to today on mount
@@ -177,10 +178,16 @@ export const Dashboard: React.FC = () => {
 
   const currentMonthName = visibleMonth || today.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
 
+  // Filter tasks by selected date
+  const isToday = selectedDate.toDateString() === today.toDateString();
+  const selectedDateStr = selectedDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+
   const filteredTasks = tasks.filter(t => {
+    // For now, show all tasks for any selected date
+    // In future, you can filter by task.createdAt date
     if (filter === 'active') return !t.completed;
     if (filter === 'completed') return t.completed;
-    return !t.completed; // По умолчанию показываем только активные
+    return !t.completed;
   });
 
   const displayedTasks = isExpanded ? filteredTasks : filteredTasks.slice(0, 3);
@@ -207,30 +214,36 @@ export const Dashboard: React.FC = () => {
         </div>
         <div ref={calendarRef} className="overflow-x-auto snap-x snap-mandatory scrollbar-hide">
           <div className="flex gap-1.5 pb-2" style={{ width: 'max-content' }}>
-            {weekDays.map((day, index) => (
-              <div
-                key={index}
-                data-today={day.isToday}
-                data-month={day.month}
-                className={cn(
-                  "flex flex-col items-center justify-center snap-center py-3 rounded-2xl transition-all flex-shrink-0",
-                  day.isToday 
-                    ? "bg-accent-purple text-white shadow-[0_0_20px_rgba(139,92,246,0.4)]" 
-                    : "bg-transparent text-[#8b7ca8]"
-                )}
-                style={{ width: 'calc((100vw - 48px) / 7)' }}
-              >
-                <span className="text-[10px] font-black uppercase tracking-wider mb-2 font-display">
-                  {day.weekday}
-                </span>
-                <span className={cn(
-                  "text-xl font-black font-display",
-                  day.isToday && "glow-purple"
-                )}>
-                  {day.day}
-                </span>
-              </div>
-            ))}
+            {weekDays.map((day, index) => {
+              const isSelected = selectedDate.toDateString() === day.date.toDateString();
+              return (
+                <button
+                  key={index}
+                  data-today={day.isToday}
+                  data-month={day.month}
+                  onClick={() => setSelectedDate(day.date)}
+                  className={cn(
+                    "flex flex-col items-center justify-center snap-center py-3 rounded-2xl transition-all flex-shrink-0 cursor-pointer",
+                    day.isToday && !isSelected
+                      ? "bg-accent-purple/20 text-accent-purple border border-accent-purple/30" 
+                      : isSelected
+                      ? "bg-accent-purple text-white shadow-[0_0_20px_rgba(139,92,246,0.4)]"
+                      : "bg-transparent text-[#8b7ca8] hover:bg-white/5"
+                  )}
+                  style={{ width: 'calc((100vw - 48px) / 7)' }}
+                >
+                  <span className="text-[10px] font-black uppercase tracking-wider mb-2 font-display">
+                    {day.weekday}
+                  </span>
+                  <span className={cn(
+                    "text-xl font-black font-display",
+                    isSelected && "glow-purple"
+                  )}>
+                    {day.day}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -281,7 +294,9 @@ export const Dashboard: React.FC = () => {
       <div>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-2xl font-black text-white uppercase font-display mb-1">Сегодня</h2>
+            <h2 className="text-2xl font-black text-white uppercase font-display mb-1">
+              {isToday ? 'Сегодня' : selectedDateStr}
+            </h2>
             <p className="text-xs text-[#8b7ca8] font-bold uppercase tracking-wider font-display">
               {completedToday}/{totalToday} выполнено
             </p>
