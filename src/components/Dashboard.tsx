@@ -29,8 +29,9 @@ export const Dashboard: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState('');
   const [isAdding, setIsAdding] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
+  const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('active');
   const [isExpanded, setIsExpanded] = useState(false);
+  const [visibleMonth, setVisibleMonth] = useState('');
   const calendarRef = useRef<HTMLDivElement>(null);
 
   // Scroll to today on mount
@@ -40,6 +41,44 @@ export const Dashboard: React.FC = () => {
       if (todayElement) {
         todayElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       }
+    }
+  }, []);
+
+  // Update visible month on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      if (calendarRef.current) {
+        const container = calendarRef.current;
+        const containerRect = container.getBoundingClientRect();
+        const centerX = containerRect.left + containerRect.width / 2;
+        
+        const days = container.querySelectorAll('[data-month]');
+        let closestDay: Element | null = null;
+        let closestDistance = Infinity;
+        
+        days.forEach((day) => {
+          const rect = day.getBoundingClientRect();
+          const dayCenter = rect.left + rect.width / 2;
+          const distance = Math.abs(centerX - dayCenter);
+          
+          if (distance < closestDistance) {
+            closestDistance = distance;
+            closestDay = day;
+          }
+        });
+        
+        if (closestDay) {
+          const month = closestDay.getAttribute('data-month');
+          if (month) setVisibleMonth(month);
+        }
+      }
+    };
+
+    const container = calendarRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      handleScroll(); // Initial call
+      return () => container.removeEventListener('scroll', handleScroll);
     }
   }, []);
 
@@ -118,25 +157,25 @@ export const Dashboard: React.FC = () => {
 
   if (!user) return null;
 
-  // Generate week calendar (more days for infinite scroll effect)
+  // Generate infinite calendar (90 days back and forward)
   const today = new Date();
   const currentDay = today.getDate();
   const currentMonth = today.getMonth();
   const currentYear = today.getFullYear();
 
   const weekDays = [];
-  for (let i = -30; i <= 30; i++) {
+  for (let i = -90; i <= 90; i++) {
     const date = new Date(currentYear, currentMonth, currentDay + i);
     weekDays.push({
       day: date.getDate(),
       weekday: date.toLocaleDateString('ru-RU', { weekday: 'short' }).slice(0, 2).charAt(0).toUpperCase() + date.toLocaleDateString('ru-RU', { weekday: 'short' }).slice(1, 2),
       isToday: i === 0,
-      month: date.toLocaleDateString('ru-RU', { month: 'short' }),
+      month: date.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }),
       date: date
     });
   }
 
-  const currentMonthName = today.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+  const currentMonthName = visibleMonth || today.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
 
   const filteredTasks = tasks.filter(t => {
     if (filter === 'active') return !t.completed;
@@ -172,6 +211,7 @@ export const Dashboard: React.FC = () => {
               <div
                 key={index}
                 data-today={day.isToday}
+                data-month={day.month}
                 className={cn(
                   "flex flex-col items-center justify-center snap-center py-3 rounded-2xl transition-all flex-shrink-0",
                   day.isToday 
@@ -345,10 +385,11 @@ export const Dashboard: React.FC = () => {
         {/* Expand button */}
         {hasMoreTasks && (
           <motion.button
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
             onClick={() => setIsExpanded(!isExpanded)}
-            className="w-full mt-4 py-3 bg-[#150a24]/50 border border-white/5 rounded-2xl text-xs font-black text-[#8b7ca8] uppercase tracking-wider font-display hover:border-accent-purple/30 transition-all flex items-center justify-center gap-2"
+            className="w-full mt-3 py-4 bg-[#150a24]/50 border border-white/5 rounded-2xl text-xs font-black text-[#8b7ca8] uppercase tracking-wider font-display hover:border-accent-purple/30 transition-all flex items-center justify-center gap-2"
           >
             {isExpanded ? '↑ Свернуть' : `↓ Показать еще ${filteredTasks.length - 3}`}
           </motion.button>
