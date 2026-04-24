@@ -71,42 +71,6 @@ export const Goals: React.FC = () => {
         <p className="text-[#8b7ca8] text-[10px] font-black uppercase tracking-[0.2em] font-display">Твои долгосрочные цели и прогресс</p>
       </header>
 
-      {error && (
-        <div className="p-3 bg-accent-red/10 border border-accent-red/20 rounded-xl text-accent-red text-[10px] font-black uppercase font-display">
-          {error}
-        </div>
-      )}
-
-      <form onSubmit={addGoal} className="bento-card bg-[#150a24] border border-white/5 space-y-4 shadow-2xl gaming-border">
-        <input
-          type="text"
-          value={newTitle}
-          onChange={(e) => setNewTitle(e.target.value)}
-          placeholder="Назови свою цель..."
-          className="w-full bg-[#0b0416] border border-white/5 rounded-xl py-3 px-4 focus:outline-none focus:border-accent-magenta transition-all text-base font-black uppercase tracking-widest text-white placeholder:text-[#8b7ca8]/30 italic font-display"
-        />
-        <div className="flex items-center gap-4">
-          <div className="flex-1">
-             <div className="flex justify-between items-center mb-1">
-                <label className="text-[9px] uppercase font-black text-[#8b7ca8] tracking-widest font-display">Целевое значение</label>
-             </div>
-            <input
-              type="number"
-              value={newTarget}
-              onChange={(e) => setNewTarget(Number(e.target.value))}
-              className="w-full bg-[#0b0416] border border-white/5 rounded-xl py-2 px-4 focus:outline-none focus:border-accent-magenta transition-all text-base font-black text-white font-display"
-            />
-          </div>
-          <button 
-            type="submit" 
-            disabled={isAdding}
-            className="self-end bg-accent-magenta text-white px-8 py-2.5 rounded-xl font-black uppercase italic text-xs active:scale-95 transition-transform disabled:opacity-50 shadow-[0_0_15px_#ff00d4] font-display h-[42px]"
-          >
-            {isAdding ? '...' : 'Создать'}
-          </button>
-        </div>
-      </form>
-
       <div className="grid grid-cols-1 gap-4">
         {goals.map((goal) => (
           <motion.div
