@@ -27,23 +27,66 @@ export const CreateHub: React.FC = () => {
       const today = new Date();
       const scheduledDateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-      const path = `spaces/${user.currentSpaceId}/tasks`;
-      await addDoc(collection(db, path), {
-        title: input,
-        statType: taskType?.stat || 'intelligence',
-        completed: false,
-        xpAwarded: false,
-        xpValue: XP_VALUES.TASK,
-        spaceId: user.currentSpaceId,
-        scheduledDate: scheduledDateStr,
-        createdAt: serverTimestamp(),
-      });
+      // Create in different collections based on type
+      if (selectedType === 'task') {
+        const path = `spaces/${user.currentSpaceId}/tasks`;
+        await addDoc(collection(db, path), {
+          title: input,
+          statType: taskType?.stat || 'intelligence',
+          completed: false,
+          xpAwarded: false,
+          xpValue: XP_VALUES.TASK,
+          spaceId: user.currentSpaceId,
+          scheduledDate: scheduledDateStr,
+          createdAt: serverTimestamp(),
+        });
+      } else if (selectedType === 'habit') {
+        const path = `spaces/${user.currentSpaceId}/habits`;
+        await addDoc(collection(db, path), {
+          title: input,
+          statType: taskType?.stat || 'vitality',
+          streak: 0,
+          lastCompleted: null,
+          xpValue: XP_VALUES.HABIT,
+          spaceId: user.currentSpaceId,
+          createdAt: serverTimestamp(),
+        });
+      } else if (selectedType === 'shopping') {
+        const path = `spaces/${user.currentSpaceId}/shopping`;
+        await addDoc(collection(db, path), {
+          name: input,
+          completed: false,
+          spaceId: user.currentSpaceId,
+          createdAt: serverTimestamp(),
+        });
+      } else if (selectedType === 'goal') {
+        const path = `spaces/${user.currentSpaceId}/goals`;
+        await addDoc(collection(db, path), {
+          title: input,
+          statType: taskType?.stat || 'strength',
+          progress: 0,
+          target: 100,
+          xpValue: XP_VALUES.GOAL,
+          spaceId: user.currentSpaceId,
+          createdAt: serverTimestamp(),
+        });
+      }
 
       setInput('');
       setSelectedType(null);
-      setActiveTab('dashboard');
+      
+      // Navigate to appropriate tab based on type
+      if (selectedType === 'task') {
+        setActiveTab('dashboard');
+      } else if (selectedType === 'habit') {
+        setActiveTab('habits');
+      } else if (selectedType === 'shopping') {
+        setActiveTab('shopping');
+      } else if (selectedType === 'goal') {
+        setActiveTab('goals');
+      }
     } catch (error) {
-      console.error('Error creating task:', error);
+      console.error('Error creating item:', error);
     } finally {
       setIsCreating(false);
     }
@@ -63,7 +106,13 @@ export const CreateHub: React.FC = () => {
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Напиши, что нужно сделать..."
+          placeholder={
+            selectedType === 'task' ? 'Напиши задачу...' :
+            selectedType === 'habit' ? 'Напиши привычку...' :
+            selectedType === 'shopping' ? 'Что купить...' :
+            selectedType === 'goal' ? 'Напиши цель...' :
+            'Выбери тип ниже...'
+          }
           className="w-full bg-[#150a24] border border-white/10 rounded-2xl p-4 pr-12 focus:outline-none focus:border-accent-purple transition-all text-sm text-white placeholder:text-[#8b7ca8]/50 font-display resize-none"
           rows={3}
         />
@@ -78,10 +127,10 @@ export const CreateHub: React.FC = () => {
           Примеры:
         </p>
         <div className="space-y-1.5">
-          {[
-            'Тренировка завтра в 18:00',
-            'Купить продукты на неделю',
-            'Подготовить презентацию'
+          {selectedType === 'task' && [
+            'Подготовить презентацию',
+            'Написать отчет',
+            'Позвонить клиенту'
           ].map((example, i) => (
             <button
               key={i}
@@ -90,6 +139,57 @@ export const CreateHub: React.FC = () => {
             >
               {example}
             </button>
+          ))}
+          {selectedType === 'habit' && [
+            'Утренняя зарядка',
+            'Медитация 10 минут',
+            'Выпить 2 литра воды'
+          ].map((example, i) => (
+            <button
+              key={i}
+              onClick={() => setInput(example)}
+              className="block w-full text-left px-3 py-2 text-xs text-accent-purple font-display hover:bg-accent-purple/10 rounded-xl transition-colors"
+            >
+              {example}
+            </button>
+          ))}
+          {selectedType === 'shopping' && [
+            'Молоко',
+            'Хлеб',
+            'Яйца'
+          ].map((example, i) => (
+            <button
+              key={i}
+              onClick={() => setInput(example)}
+              className="block w-full text-left px-3 py-2 text-xs text-accent-purple font-display hover:bg-accent-purple/10 rounded-xl transition-colors"
+            >
+              {example}
+            </button>
+          ))}
+          {selectedType === 'goal' && [
+            'Похудеть на 5 кг',
+            'Прочитать 12 книг',
+            'Выучить английский'
+          ].map((example, i) => (
+            <button
+              key={i}
+              onClick={() => setInput(example)}
+              className="block w-full text-left px-3 py-2 text-xs text-accent-purple font-display hover:bg-accent-purple/10 rounded-xl transition-colors"
+            >
+              {example}
+            </button>
+          ))}
+          {!selectedType && [
+            'Выбери тип ниже',
+            'Задача, привычка, покупка или цель',
+            'Затем увидишь примеры'
+          ].map((example, i) => (
+            <div
+              key={i}
+              className="block w-full text-left px-3 py-2 text-xs text-[#8b7ca8] font-display rounded-xl"
+            >
+              {example}
+            </div>
           ))}
         </div>
       </div>
