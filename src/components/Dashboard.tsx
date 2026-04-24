@@ -216,9 +216,10 @@ export const Dashboard: React.FC = () => {
   const displayedTasks = isExpanded ? filteredTasks : filteredTasks.slice(0, 3);
   const hasMoreTasks = filteredTasks.length > 3;
 
-  const completedToday = tasks.filter(t => t.completed).length;
-  const totalToday = tasks.length;
-  const progressPercent = totalToday > 0 ? Math.round((completedToday / totalToday) * 100) : 0;
+  // Calculate stats for selected date only
+  const completedForSelectedDate = filteredTasks.filter(t => t.completed).length;
+  const totalForSelectedDate = filteredTasks.length;
+  const progressPercent = totalForSelectedDate > 0 ? Math.round((completedForSelectedDate / totalForSelectedDate) * 100) : 0;
 
   // Calculate streak (simplified - just count completed tasks)
   const streak = tasks.filter(t => t.completed).length;
@@ -323,7 +324,7 @@ export const Dashboard: React.FC = () => {
             </h2>
             {isToday && (
               <p className="text-xs text-[#8b7ca8] font-bold uppercase tracking-wider font-display">
-                {completedToday}/{totalToday} выполнено
+                {completedForSelectedDate}/{totalForSelectedDate} выполнено
               </p>
             )}
           </div>
@@ -448,56 +449,58 @@ export const Dashboard: React.FC = () => {
         )}
       </div>
 
-      {/* Stats Section */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* Progress Circle */}
-        <div className="bg-[#150a24]/50 border border-white/5 rounded-2xl p-6 flex flex-col items-center justify-center">
-          <div className="relative w-24 h-24 mb-3">
-            <svg className="w-full h-full transform -rotate-90">
-              <circle
-                cx="48"
-                cy="48"
-                r="40"
-                stroke="rgba(255,255,255,0.05)"
-                strokeWidth="8"
-                fill="none"
-              />
-              <circle
-                cx="48"
-                cy="48"
-                r="40"
-                stroke="#3B82F6"
-                strokeWidth="8"
-                fill="none"
-                strokeDasharray={`${progressPercent * 2.51} 251`}
-                strokeLinecap="round"
-              />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-2xl font-black text-white font-display">{progressPercent}%</span>
+      {/* Stats Section - Only show for today */}
+      {isToday && (
+        <div className="grid grid-cols-2 gap-4">
+          {/* Progress Circle */}
+          <div className="bg-[#150a24]/50 border border-white/5 rounded-2xl p-6 flex flex-col items-center justify-center">
+            <div className="relative w-24 h-24 mb-3">
+              <svg className="w-full h-full transform -rotate-90">
+                <circle
+                  cx="48"
+                  cy="48"
+                  r="40"
+                  stroke="rgba(255,255,255,0.05)"
+                  strokeWidth="8"
+                  fill="none"
+                />
+                <circle
+                  cx="48"
+                  cy="48"
+                  r="40"
+                  stroke="#3B82F6"
+                  strokeWidth="8"
+                  fill="none"
+                  strokeDasharray={`${progressPercent * 2.51} 251`}
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-2xl font-black text-white font-display">{progressPercent}%</span>
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-xs font-black text-[#8b7ca8] uppercase tracking-wider font-display mb-1">
+                Сегодня: {completedForSelectedDate} из {totalForSelectedDate}
+              </div>
+              <div className="text-[10px] text-accent-blue font-bold font-display">
+                Продолжай в том же духе!
+              </div>
             </div>
           </div>
-          <div className="text-center">
-            <div className="text-xs font-black text-[#8b7ca8] uppercase tracking-wider font-display mb-1">
-              Сегодня: {completedToday} из {totalToday}
-            </div>
-            <div className="text-[10px] text-accent-blue font-bold font-display">
-              Продолжай в том же духе!
-            </div>
-          </div>
-        </div>
 
-        {/* Streak */}
-        <div className="bg-[#150a24]/50 border border-white/5 rounded-2xl p-6 flex flex-col items-center justify-center">
-          <div className="w-16 h-16 bg-accent-orange/10 rounded-full flex items-center justify-center mb-3">
-            <Flame size={32} className="text-accent-orange" />
-          </div>
-          <div className="text-3xl font-black text-white mb-1 font-display">{streak}</div>
-          <div className="text-xs font-black text-[#8b7ca8] uppercase tracking-wider font-display">
-            дней подряд
+          {/* Streak */}
+          <div className="bg-[#150a24]/50 border border-white/5 rounded-2xl p-6 flex flex-col items-center justify-center">
+            <div className="w-16 h-16 bg-accent-orange/10 rounded-full flex items-center justify-center mb-3">
+              <Flame size={32} className="text-accent-orange" />
+            </div>
+            <div className="text-3xl font-black text-white mb-1 font-display">{streak}</div>
+            <div className="text-xs font-black text-[#8b7ca8] uppercase tracking-wider font-display">
+              дней подряд
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
