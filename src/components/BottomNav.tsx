@@ -20,8 +20,7 @@ export const BottomNav: React.FC = () => {
       return;
     }
     if (id === 'profile') {
-      // Handle profile navigation
-      console.log('Profile clicked');
+      setActiveTab('profile');
       return;
     }
     setActiveTab(id as any);

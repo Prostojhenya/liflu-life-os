@@ -11,6 +11,7 @@ import { Shopping } from './components/Shopping';
 import { Chat } from './components/Chat';
 import { Goals } from './components/Goals';
 import { CreateHub } from './components/CreateHub';
+import { Profile } from './components/Profile';
 import { LogIn, Sparkles } from 'lucide-react';
 
 export default function App() {
@@ -158,6 +159,7 @@ export default function App() {
       {activeTab === 'chat' && <Chat />}
       {activeTab === 'goals' && <Goals />}
       {activeTab === 'create' && <CreateHub />}
+      {activeTab === 'profile' && <Profile />}
     </Layout>
   );
 }

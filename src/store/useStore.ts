@@ -22,7 +22,7 @@ interface UserProfile {
 interface AppState {
   user: UserProfile | null;
   isAuthReady: boolean;
-  activeTab: 'dashboard' | 'tasks' | 'habits' | 'shopping' | 'chat' | 'goals' | 'create';
+  activeTab: 'dashboard' | 'tasks' | 'habits' | 'shopping' | 'chat' | 'goals' | 'create' | 'profile';
   setUser: (user: UserProfile | null) => void;
   setAuthReady: (ready: boolean) => void;
   setActiveTab: (tab: AppState['activeTab']) => void;
