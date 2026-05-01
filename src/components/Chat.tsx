@@ -6,9 +6,10 @@ import {
   serverTimestamp, limit, doc, setDoc, getDoc,
   getDocs, updateDoc, where, arrayUnion
 } from 'firebase/firestore';
-import { Send, ArrowLeft, Plus, Users, User, Search, Check, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { Send, Plus, Users, Search, Check } from 'lucide-react';
+import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
+import { useChatHeader } from '@/store/chatHeaderContext';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -46,8 +47,9 @@ const getAvatar = (uid: string, photoURL?: string) =>
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export const Chat: React.FC<{ keyboardOpen?: boolean }> = ({ keyboardOpen = false }) => {
+export const Chat: React.FC = () => {
   const { user } = useStore();
+  const { setChatHeader } = useChatHeader();
   const [view, setView] = useState<'list' | 'chat' | 'new-group'>('list');
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -60,6 +62,40 @@ export const Chat: React.FC<{ keyboardOpen?: boolean }> = ({ keyboardOpen = fals
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // ── Update Layout header based on current view ─────────────────────────────
+  useEffect(() => {
+    if (view === 'chat' && activeConv) {
+      const otherUid = activeConv.type === 'direct'
+        ? activeConv.participants.find(p => p !== user?.uid)
+        : null;
+      const otherProfile = otherUid ? activeConv.participantProfiles?.[otherUid] : null;
+      const avatar = otherUid ? getAvatar(otherUid, otherProfile?.photoURL) : null;
+      const title = otherProfile?.displayName || (
+        activeConv.type === 'group'
+          ? Object.values(activeConv.participantProfiles || {})
+              .filter(p => p.uid !== user?.uid)
+              .map(p => p.displayName)
+              .join(', ')
+          : 'Чат'
+      );
+      setChatHeader({
+        title,
+        subtitle: activeConv.type === 'group' ? `${activeConv.participants.length} участников` : 'Личный чат',
+        avatar,
+        onBack: () => { setView('list'); setActiveConv(null); setMessages([]); },
+      });
+    } else if (view === 'new-group') {
+      setChatHeader({
+        title: 'Новая группа',
+        subtitle: '',
+        avatar: null,
+        onBack: () => setView('list'),
+      });
+    } else {
+      setChatHeader(null);
+    }
+  }, [view, activeConv, user?.uid]);
 
   // ── Load contacts from all spaces the user is a member of ──────────────────
   useEffect(() => {
@@ -325,28 +361,21 @@ export const Chat: React.FC<{ keyboardOpen?: boolean }> = ({ keyboardOpen = fals
   // ── New Group View ──────────────────────────────────────────────────────────
   if (view === 'new-group') {
     return (
-      <div className="fixed inset-0 flex flex-col bg-[#0b0416] z-10">
-        <div className="bg-[#150a24] border-b border-white/10 px-4 py-3.5 flex items-center gap-3 flex-shrink-0">
-          <button onClick={() => setView('list')} className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-[#8b7ca8]">
-            <ArrowLeft size={18} />
-          </button>
-          <p className="text-xs font-black text-white uppercase font-display">Новая группа</p>
-        </div>
-        <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4 min-h-0">
+      <div className="flex flex-col h-full">
 
         <input
           type="text"
           value={groupName}
           onChange={e => setGroupName(e.target.value)}
           placeholder="Название группы..."
-          className="bg-[#150a24] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-[#8b7ca8]/50 font-display focus:outline-none focus:border-accent-purple transition-all"
+          className="bg-[#150a24] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-[#8b7ca8]/50 font-display focus:outline-none focus:border-accent-purple transition-all mb-4"
         />
 
-        <p className="text-[10px] text-[#8b7ca8] font-black uppercase tracking-wider font-display">
+        <p className="text-[10px] text-[#8b7ca8] font-black uppercase tracking-wider font-display mb-2">
           Выбери участников
         </p>
 
-        <div className="space-y-2">
+        <div className="flex-1 overflow-y-auto space-y-2">
           {contacts.map(contact => {
             const selected = selectedContacts.includes(contact.uid);
             return (
@@ -373,17 +402,14 @@ export const Chat: React.FC<{ keyboardOpen?: boolean }> = ({ keyboardOpen = fals
             <p className="text-center text-[#8b7ca8] text-sm py-8">Нет контактов. Пригласи людей в пространства.</p>
           )}
         </div>
-        </div>
 
-        <div className="px-4 py-3 flex-shrink-0">
-          <button
-            onClick={createGroupChat}
-            disabled={!groupName.trim() || selectedContacts.length === 0}
-            className="w-full py-3.5 bg-accent-purple text-white rounded-xl font-black text-sm uppercase font-display disabled:opacity-40 active:scale-95 transition-all"
-          >
-            Создать группу ({selectedContacts.length})
-          </button>
-        </div>
+        <button
+          onClick={createGroupChat}
+          disabled={!groupName.trim() || selectedContacts.length === 0}
+          className="mt-4 w-full py-3.5 bg-accent-purple text-white rounded-xl font-black text-sm uppercase font-display disabled:opacity-40 active:scale-95 transition-all"
+        >
+          Создать группу ({selectedContacts.length})
+        </button>
       </div>
     );
   }
@@ -406,27 +432,9 @@ export const Chat: React.FC<{ keyboardOpen?: boolean }> = ({ keyboardOpen = fals
     );
 
     return (
-      <div className="fixed inset-x-0 top-0 flex flex-col bg-[#0b0416] z-10" style={{ bottom: keyboardOpen ? 0 : 'var(--nav-height, 64px)' }}>
-        {/* Chat header — fixed at top */}
-        <div className="bg-[#150a24] border-b border-white/10 px-4 py-3 flex items-center gap-3 flex-shrink-0">
-          <button onClick={() => { setView('list'); setActiveConv(null); setMessages([]); }}
-            className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-[#8b7ca8] flex-shrink-0">
-            <ArrowLeft size={18} />
-          </button>
-          {convAvatar
-            ? <img src={convAvatar} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" referrerPolicy="no-referrer" />
-            : <div className="w-9 h-9 rounded-full bg-accent-purple/20 flex items-center justify-center flex-shrink-0"><Users size={16} className="text-accent-purple" /></div>
-          }
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-black text-white uppercase font-display truncate">{convTitle}</p>
-            <p className="text-[9px] text-[#8b7ca8] font-display">
-              {activeConv.type === 'group' ? `${activeConv.participants.length} участников` : 'Личный чат'}
-            </p>
-          </div>
-        </div>
-
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-4 py-2 space-y-0.5 custom-scrollbar min-h-0">
+      <div className="flex flex-col h-full">
+        {/* Messages — flex-1 + overflow scroll */}
+        <div className="flex-1 overflow-y-auto space-y-0.5 pr-1 custom-scrollbar min-h-0">
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-center py-12">
               <div className="text-4xl mb-3">💬</div>
@@ -468,31 +476,25 @@ export const Chat: React.FC<{ keyboardOpen?: boolean }> = ({ keyboardOpen = fals
           <div ref={scrollRef} />
         </div>
 
-        {/* Input */}
-        <form onSubmit={sendMessage} className="px-4 py-3 flex gap-2 flex-shrink-0 bg-[#0b0416] border-t border-white/5">
-          <textarea
-            ref={inputRef as any}
-            rows={1}
+        {/* Input — always at bottom, never scrolls */}
+        <form onSubmit={sendMessage} className="mt-3 flex gap-2 flex-shrink-0">
+          <input
+            ref={inputRef}
+            type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(e as any); } }}
             placeholder="Сообщение..."
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="sentences"
             spellCheck={false}
-            className="flex-1 bg-[#150a24] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder:text-[#8b7ca8]/50 font-display focus:outline-none focus:border-accent-purple transition-all resize-none overflow-hidden leading-5"
-            style={{ maxHeight: '96px' }}
-            onInput={e => {
-              const t = e.target as HTMLTextAreaElement;
-              t.style.height = 'auto';
-              t.style.height = Math.min(t.scrollHeight, 96) + 'px';
-            }}
+            enterKeyHint="send"
+            className="flex-1 bg-[#150a24] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder:text-[#8b7ca8]/50 font-display focus:outline-none focus:border-accent-purple transition-all"
           />
           <button
             type="submit"
             disabled={!input.trim() || isSending}
-            className="w-11 h-11 bg-accent-purple text-white rounded-2xl flex items-center justify-center shadow-[0_0_12px_rgba(139,92,246,0.3)] active:scale-95 transition-all disabled:opacity-40 self-end flex-shrink-0"
+            className="w-11 h-11 bg-accent-purple text-white rounded-2xl flex items-center justify-center shadow-[0_0_12px_rgba(139,92,246,0.3)] active:scale-95 transition-all disabled:opacity-40"
           >
             <Send size={17} />
           </button>
@@ -503,10 +505,9 @@ export const Chat: React.FC<{ keyboardOpen?: boolean }> = ({ keyboardOpen = fals
 
   // ── List View (default) ─────────────────────────────────────────────────────
   return (
-    <div className="fixed inset-0 flex flex-col bg-[#0b0416] z-10">
-      {/* Top bar */}
-      <div className="bg-[#150a24] border-b border-white/10 px-4 py-3.5 flex items-center justify-between flex-shrink-0">
-        <p className="text-xs font-black text-white uppercase font-display">Чаты</p>
+    <div className="flex flex-col h-full">
+      {/* New group button in header is handled by Layout, add it via a floating button here */}
+      <div className="flex items-center justify-end mb-3">
         <button
           onClick={() => setView('new-group')}
           className="w-8 h-8 rounded-xl bg-accent-purple/20 border border-accent-purple/30 flex items-center justify-center text-accent-purple active:scale-95 transition-all"
@@ -516,8 +517,8 @@ export const Chat: React.FC<{ keyboardOpen?: boolean }> = ({ keyboardOpen = fals
       </div>
 
       {/* Search */}
-      <div className="relative px-4 py-2 flex-shrink-0">
-        <Search size={15} className="absolute left-7 top-1/2 -translate-y-1/2 text-[#8b7ca8]" />
+      <div className="relative mb-3">
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8b7ca8]" />
         <input
           type="text"
           value={search}
@@ -527,7 +528,7 @@ export const Chat: React.FC<{ keyboardOpen?: boolean }> = ({ keyboardOpen = fals
         />
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1 px-4 pb-4 min-h-0">
+      <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1">
         {/* Active conversations */}
         {!search && conversations.length > 0 && (
           <>

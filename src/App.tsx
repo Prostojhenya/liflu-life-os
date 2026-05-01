@@ -13,7 +13,7 @@ import { Goals } from './components/Goals';
 import { CreateHub } from './components/CreateHub';
 import { Profile } from './components/Profile';
 import { LoadingScreen } from './components/LoadingScreen';
-import { LogIn, Sparkles } from 'lucide-react';
+import { ChatHeaderProvider } from './store/chatHeaderContext';
 
 export default function App() {
   const { user, setUser, isAuthReady, setAuthReady, activeTab } = useStore();
@@ -205,15 +205,17 @@ export default function App() {
   }
 
   return (
-    <Layout>
-      {activeTab === 'dashboard' && <Dashboard />}
-      {activeTab === 'tasks' && <Tasks />}
-      {activeTab === 'habits' && <Habits />}
-      {activeTab === 'shopping' && <Shopping />}
-      {activeTab === 'chat' && <Chat />}
-      {activeTab === 'goals' && <Goals />}
-      {activeTab === 'create' && <CreateHub />}
-      {activeTab === 'profile' && <Profile />}
-    </Layout>
+    <ChatHeaderProvider>
+      <Layout>
+        {activeTab === 'dashboard' && <Dashboard />}
+        {activeTab === 'tasks' && <Tasks />}
+        {activeTab === 'habits' && <Habits />}
+        {activeTab === 'shopping' && <Shopping />}
+        {activeTab === 'chat' && <Chat />}
+        {activeTab === 'goals' && <Goals />}
+        {activeTab === 'create' && <CreateHub />}
+        {activeTab === 'profile' && <Profile />}
+      </Layout>
+    </ChatHeaderProvider>
   );
 }

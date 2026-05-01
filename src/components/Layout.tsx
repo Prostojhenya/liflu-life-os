@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore } from '@/store/useStore';
 import { cn } from '@/lib/utils';
 import { motion } from 'motion/react';
@@ -6,14 +6,15 @@ import { BottomNav } from './BottomNav';
 import { SpaceSwitcher } from './SpaceSwitcher';
 import { db } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import { ChevronDown, Users, Lock } from 'lucide-react';
+import { ChevronDown, Users, Lock, ArrowLeft } from 'lucide-react';
+import { useChatHeader } from '@/store/chatHeaderContext';
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { activeTab, user } = useStore();
+  const { chatHeader } = useChatHeader();
   const [isSpaceSwitcherOpen, setIsSpaceSwitcherOpen] = useState(false);
   const [currentSpace, setCurrentSpace] = useState<{ name: string; type: 'personal' | 'shared' } | null>(null);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!user?.currentSpaceId) return;
@@ -31,38 +32,12 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     loadSpace();
   }, [user?.currentSpaceId]);
 
-  // iOS keyboard fix: lock the container height when keyboard opens
-  // so the layout doesn't scroll/jump
   useEffect(() => {
-    const initialHeight = window.innerHeight;
-
     const onFocusIn = (e: FocusEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
-      if (tag !== 'INPUT' && tag !== 'TEXTAREA') return;
-      setKeyboardOpen(true);
-
-      // On iOS: freeze container at current height so it doesn't jump
-      if (containerRef.current) {
-        containerRef.current.style.height = `${initialHeight}px`;
-        containerRef.current.style.position = 'fixed';
-        containerRef.current.style.top = '0';
-        containerRef.current.style.left = '0';
-        containerRef.current.style.right = '0';
-      }
+      if (tag === 'INPUT' || tag === 'TEXTAREA') setKeyboardOpen(true);
     };
-
-    const onFocusOut = () => {
-      setKeyboardOpen(false);
-      // Restore normal layout
-      if (containerRef.current) {
-        containerRef.current.style.height = '';
-        containerRef.current.style.position = '';
-        containerRef.current.style.top = '';
-        containerRef.current.style.left = '';
-        containerRef.current.style.right = '';
-      }
-    };
-
+    const onFocusOut = () => setKeyboardOpen(false);
     document.addEventListener('focusin', onFocusIn);
     document.addEventListener('focusout', onFocusOut);
     return () => {
@@ -75,14 +50,38 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const hideNav = isChat && keyboardOpen;
 
   return (
-    <div
-      ref={containerRef}
-      className="flex flex-col bg-[#0b0416] text-white font-sans overflow-hidden"
-      style={{ height: '100svh' }}
-    >
-      {/* Top bar — hidden in chat */}
-      {!isChat && (
-        <header className="shrink-0 z-20 bg-[#0b0416]">
+    <div className="flex flex-col bg-[#0b0416] text-white font-sans overflow-hidden" style={{ height: '100dvh' }}>
+
+      {/* Top bar — space switcher OR chat header */}
+      <header className="shrink-0 z-20 bg-[#0b0416]">
+        {isChat && chatHeader ? (
+          // Chat header — stays fixed at top, never moves
+          <div className="bg-[#150a24] border-b border-white/10 px-4 py-3 flex items-center gap-3">
+            <button
+              onClick={() => chatHeader.onBack?.()}
+              className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-[#8b7ca8] flex-shrink-0"
+            >
+              <ArrowLeft size={18} />
+            </button>
+            {chatHeader.avatar ? (
+              <img src={chatHeader.avatar} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" referrerPolicy="no-referrer" />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-accent-purple/20 flex items-center justify-center flex-shrink-0">
+                <Users size={16} className="text-accent-purple" />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-black text-white uppercase font-display truncate">{chatHeader.title}</p>
+              <p className="text-[9px] text-[#8b7ca8] font-display">{chatHeader.subtitle}</p>
+            </div>
+          </div>
+        ) : isChat ? (
+          // Chat list header
+          <div className="bg-[#150a24] border-b border-white/10 px-5 py-3.5 flex items-center justify-between">
+            <p className="text-xs font-black text-white uppercase font-display">Чаты</p>
+          </div>
+        ) : (
+          // Space switcher
           <button
             onClick={() => setIsSpaceSwitcherOpen(true)}
             className="w-full bg-[#150a24] border-b border-white/10 px-5 py-3.5 flex items-center gap-3 active:bg-white/5 transition-colors"
@@ -103,20 +102,15 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             </div>
             <ChevronDown size={16} className="text-[#8b7ca8] flex-shrink-0" />
           </button>
-        </header>
-      )}
+        )}
+      </header>
 
-      <SpaceSwitcher
-        isOpen={isSpaceSwitcherOpen}
-        onClose={() => setIsSpaceSwitcherOpen(false)}
-      />
+      <SpaceSwitcher isOpen={isSpaceSwitcherOpen} onClose={() => setIsSpaceSwitcherOpen(false)} />
 
       {/* Main Content */}
       <main className={cn(
         'min-h-0',
-        isChat
-          ? 'flex-1 flex flex-col overflow-hidden'
-          : 'flex-1 overflow-y-auto custom-scrollbar'
+        isChat ? 'flex-1 flex flex-col overflow-hidden' : 'flex-1 overflow-y-auto custom-scrollbar'
       )}>
         <motion.div
           key={activeTab}
@@ -125,16 +119,13 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           className={cn(
             'max-w-4xl mx-auto w-full',
-            isChat
-              ? 'flex-1 flex flex-col overflow-hidden px-4'
-              : 'p-5 pb-28'
+            isChat ? 'flex-1 flex flex-col overflow-hidden px-4 pt-3 pb-0' : 'p-5 pb-28'
           )}
         >
-          {activeTab === 'chat' ? React.cloneElement(children as React.ReactElement, { keyboardOpen }) : children}
+          {children}
         </motion.div>
       </main>
 
-      {/* Bottom Navigation — hidden when keyboard open in chat */}
       {!hideNav && <BottomNav />}
     </div>
   );
