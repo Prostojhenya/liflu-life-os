@@ -19,8 +19,18 @@ export default defineConfig(({mode}) => {
           theme_color: '#0b0416',
           background_color: '#0b0416',
           display: 'fullscreen',
-      orientation: 'portrait-primary',
-          icons: []
+          display_override: ['fullscreen', 'standalone', 'minimal-ui'],
+          orientation: 'portrait-primary',
+          start_url: '/',
+          scope: '/',
+      icons: [
+            {
+              src: '/img/Loading.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'any maskable'
+            }
+          ]
         }
       })
     ],
