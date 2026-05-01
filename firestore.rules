@@ -117,8 +117,14 @@ service cloud.firestore {
           // User adds themselves (e.g. accepting an invite) — memberId must match their uid
           (memberId == request.auth.uid && incoming().userId == request.auth.uid)
         );
-        allow update, delete: if isAdmin(spaceId) || 
+        allow update: if isSignedIn() &&
           get(/databases/$(database)/documents/spaces/$(spaceId)).data.ownerId == request.auth.uid;
+        allow delete: if isSignedIn() && (
+          // Space owner can always delete members
+          get(/databases/$(database)/documents/spaces/$(spaceId)).data.ownerId == request.auth.uid ||
+          // Member can remove themselves
+          memberId == request.auth.uid
+        );
       }
 
       match /tasks/{taskId} {
