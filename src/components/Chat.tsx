@@ -325,27 +325,28 @@ export const Chat: React.FC = () => {
   // ── New Group View ──────────────────────────────────────────────────────────
   if (view === 'new-group') {
     return (
-      <div className="flex flex-col h-full">
-        <div className="bg-[#150a24] border-b border-white/10 px-4 py-3.5 flex items-center gap-3 flex-shrink-0  mb-4">
+      <div className="fixed inset-0 flex flex-col bg-[#0b0416] z-10">
+        <div className="bg-[#150a24] border-b border-white/10 px-4 py-3.5 flex items-center gap-3 flex-shrink-0">
           <button onClick={() => setView('list')} className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-[#8b7ca8]">
             <ArrowLeft size={18} />
           </button>
           <p className="text-xs font-black text-white uppercase font-display">Новая группа</p>
         </div>
+        <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4 min-h-0">
 
         <input
           type="text"
           value={groupName}
           onChange={e => setGroupName(e.target.value)}
           placeholder="Название группы..."
-          className="bg-[#150a24] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-[#8b7ca8]/50 font-display focus:outline-none focus:border-accent-purple transition-all mb-4"
+          className="bg-[#150a24] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-[#8b7ca8]/50 font-display focus:outline-none focus:border-accent-purple transition-all"
         />
 
-        <p className="text-[10px] text-[#8b7ca8] font-black uppercase tracking-wider font-display mb-2">
+        <p className="text-[10px] text-[#8b7ca8] font-black uppercase tracking-wider font-display">
           Выбери участников
         </p>
 
-        <div className="flex-1 overflow-y-auto space-y-2">
+        <div className="space-y-2">
           {contacts.map(contact => {
             const selected = selectedContacts.includes(contact.uid);
             return (
@@ -372,14 +373,17 @@ export const Chat: React.FC = () => {
             <p className="text-center text-[#8b7ca8] text-sm py-8">Нет контактов. Пригласи людей в пространства.</p>
           )}
         </div>
+        </div>
 
-        <button
-          onClick={createGroupChat}
-          disabled={!groupName.trim() || selectedContacts.length === 0}
-          className="mt-4 w-full py-3.5 bg-accent-purple text-white rounded-xl font-black text-sm uppercase font-display disabled:opacity-40 active:scale-95 transition-all"
-        >
-          Создать группу ({selectedContacts.length})
-        </button>
+        <div className="px-4 py-3 flex-shrink-0">
+          <button
+            onClick={createGroupChat}
+            disabled={!groupName.trim() || selectedContacts.length === 0}
+            className="w-full py-3.5 bg-accent-purple text-white rounded-xl font-black text-sm uppercase font-display disabled:opacity-40 active:scale-95 transition-all"
+          >
+            Создать группу ({selectedContacts.length})
+          </button>
+        </div>
       </div>
     );
   }
@@ -402,9 +406,9 @@ export const Chat: React.FC = () => {
     );
 
     return (
-      <div className="flex flex-col h-full">
-        {/* Chat header — styled like the top space bar */}
-        <div className="bg-[#150a24] border-b border-white/10 px-4 py-3 flex items-center gap-3 flex-shrink-0  mb-3">
+      <div className="fixed inset-0 flex flex-col bg-[#0b0416] z-10">
+        {/* Chat header — fixed at top */}
+        <div className="bg-[#150a24] border-b border-white/10 px-4 py-3 flex items-center gap-3 flex-shrink-0">
           <button onClick={() => { setView('list'); setActiveConv(null); setMessages([]); }}
             className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-[#8b7ca8] flex-shrink-0">
             <ArrowLeft size={18} />
@@ -421,8 +425,8 @@ export const Chat: React.FC = () => {
           </div>
         </div>
 
-        {/* Messages — flex-1 + overflow scroll */}
-        <div className="flex-1 overflow-y-auto space-y-0.5 pr-1 custom-scrollbar min-h-0">
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto px-4 py-2 space-y-0.5 custom-scrollbar min-h-0">
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-center py-12">
               <div className="text-4xl mb-3">💬</div>
@@ -464,8 +468,8 @@ export const Chat: React.FC = () => {
           <div ref={scrollRef} />
         </div>
 
-        {/* Input — always at bottom, never scrolls */}
-        <form onSubmit={sendMessage} className="mt-3 flex gap-2 flex-shrink-0">
+        {/* Input */}
+        <form onSubmit={sendMessage} className="px-4 py-3 flex gap-2 flex-shrink-0 bg-[#0b0416] border-t border-white/5">
           <input
             ref={inputRef}
             type="text"
@@ -493,9 +497,9 @@ export const Chat: React.FC = () => {
 
   // ── List View (default) ─────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col h-full">
-      {/* Top bar styled like space header */}
-      <div className="bg-[#150a24] border-b border-white/10 px-4 py-3.5 flex items-center justify-between flex-shrink-0  mb-3">
+    <div className="fixed inset-0 flex flex-col bg-[#0b0416] z-10">
+      {/* Top bar */}
+      <div className="bg-[#150a24] border-b border-white/10 px-4 py-3.5 flex items-center justify-between flex-shrink-0">
         <p className="text-xs font-black text-white uppercase font-display">Чаты</p>
         <button
           onClick={() => setView('new-group')}
@@ -506,8 +510,8 @@ export const Chat: React.FC = () => {
       </div>
 
       {/* Search */}
-      <div className="relative mb-3">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8b7ca8]" />
+      <div className="relative px-4 py-2 flex-shrink-0">
+        <Search size={15} className="absolute left-7 top-1/2 -translate-y-1/2 text-[#8b7ca8]" />
         <input
           type="text"
           value={search}
@@ -517,7 +521,7 @@ export const Chat: React.FC = () => {
         />
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1">
+      <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1 px-4 pb-4 min-h-0">
         {/* Active conversations */}
         {!search && conversations.length > 0 && (
           <>
