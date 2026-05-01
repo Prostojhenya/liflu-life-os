@@ -237,6 +237,7 @@ export const SpaceSwitcher: React.FC<SpaceSwitcherProps> = ({ isOpen, onClose })
         email: user.email,
         displayName: user.displayName,
         role: 'admin',
+        spaceOwnerId: user.uid,
         joinedAt: serverTimestamp(),
       });
 
@@ -304,6 +305,7 @@ export const SpaceSwitcher: React.FC<SpaceSwitcherProps> = ({ isOpen, onClose })
         email: user.email,
         displayName: user.displayName,
         role: 'member',
+        spaceOwnerId: invite.invitedBy,
         joinedAt: serverTimestamp(),
       });
 
@@ -412,22 +414,18 @@ export const SpaceSwitcher: React.FC<SpaceSwitcherProps> = ({ isOpen, onClose })
     if (!window.confirm(`Удалить пространство "${space.name}"? Это действие нельзя отменить.`)) return;
 
     try {
-      // Delete all members
-      const membersSnap = await getDocs(collection(db, `spaces/${spaceId}/members`));
-      for (const memberDoc of membersSnap.docs) {
-        await deleteDoc(memberDoc.ref);
+      // Switch away first if this is the current space
+      if (user?.currentSpaceId === spaceId) {
+        const otherSpace = spaces.find(s => s.id !== spaceId);
+        if (otherSpace) await switchSpace(otherSpace.id);
       }
+
+      // Delete all members (ignore individual errors)
+      const membersSnap = await getDocs(collection(db, `spaces/${spaceId}/members`));
+      await Promise.allSettled(membersSnap.docs.map(m => deleteDoc(m.ref)));
 
       // Delete the space
       await deleteDoc(doc(db, 'spaces', spaceId));
-
-      // If this was the current space, switch to another
-      if (user?.currentSpaceId === spaceId) {
-        const otherSpace = spaces.find(s => s.id !== spaceId);
-        if (otherSpace) {
-          await switchSpace(otherSpace.id);
-        }
-      }
 
       setManagingSpaceId(null);
     } catch (error) {

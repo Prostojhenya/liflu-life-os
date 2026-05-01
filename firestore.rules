@@ -110,20 +110,17 @@ service cloud.firestore {
       match /members/{memberId} {
         allow read: if isMember(spaceId);
         allow create: if isSignedIn() && (
-          // Owner adds themselves when creating space
           (memberId == request.auth.uid && get(/databases/$(database)/documents/spaces/$(spaceId)).data.ownerId == request.auth.uid) ||
-          // Admin adds someone
           isAdmin(spaceId) ||
-          // User adds themselves (e.g. accepting an invite) — memberId must match their uid
           (memberId == request.auth.uid && incoming().userId == request.auth.uid)
         );
         allow update: if isSignedIn() &&
           get(/databases/$(database)/documents/spaces/$(spaceId)).data.ownerId == request.auth.uid;
+        // Allow delete: owner (checked via spaceOwnerId field stored in doc), self-removal, or direct owner check
         allow delete: if isSignedIn() && (
-          // Space owner can always delete members
-          get(/databases/$(database)/documents/spaces/$(spaceId)).data.ownerId == request.auth.uid ||
-          // Member can remove themselves
-          memberId == request.auth.uid
+          memberId == request.auth.uid ||
+          (resource.data.keys().hasAll(['spaceOwnerId']) && resource.data.spaceOwnerId == request.auth.uid) ||
+          get(/databases/$(database)/documents/spaces/$(spaceId)).data.ownerId == request.auth.uid
         );
       }
 

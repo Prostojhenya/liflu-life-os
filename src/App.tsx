@@ -107,6 +107,7 @@ export default function App() {
                     spaceId: personalSpaceRef.id,
                     userId: firebaseUser.uid,
                     role: 'admin',
+                    spaceOwnerId: firebaseUser.uid,
                     joinedAt: serverTimestamp(),
                   });
 
