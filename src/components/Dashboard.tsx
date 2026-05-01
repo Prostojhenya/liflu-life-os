@@ -36,12 +36,12 @@ export const Dashboard: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const calendarRef = useRef<HTMLDivElement>(null);
 
-  // Scroll to today on mount
+  // Scroll to today on mount — instant, no animation
   useEffect(() => {
     if (calendarRef.current) {
       const todayElement = calendarRef.current.querySelector('[data-today="true"]');
       if (todayElement) {
-        todayElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        todayElement.scrollIntoView({ behavior: 'instant', block: 'nearest', inline: 'center' });
       }
     }
   }, []);

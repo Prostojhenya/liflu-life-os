@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { db } from '@/firebase';
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, doc, setDoc, getDocs, getDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { useStore } from '@/store/useStore';
-import { X, Plus, Users, Lock, Settings, UserPlus, Mail, Trash2, Crown, Shield } from 'lucide-react';
+import { X, Plus, Users, Lock, Settings, UserPlus, Mail, Trash2, Crown, Shield, Link, Copy, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 
@@ -49,6 +49,9 @@ export const SpaceSwitcher: React.FC<SpaceSwitcherProps> = ({ isOpen, onClose })
   const [inviteEmail, setInviteEmail] = useState('');
   const [isSendingInvite, setIsSendingInvite] = useState(false);
   const [invites, setInvites] = useState<SpaceInvite[]>([]);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -327,6 +330,49 @@ export const SpaceSwitcher: React.FC<SpaceSwitcherProps> = ({ isOpen, onClose })
     }
   };
 
+  const generateInviteLink = async () => {
+    if (!managingSpaceId || !user || isGeneratingLink) return;
+    setIsGeneratingLink(true);
+    try {
+      const space = spaces.find(s => s.id === managingSpaceId);
+      // Create a link-based invite token
+      const tokenRef = await addDoc(collection(db, 'inviteLinks'), {
+        spaceId: managingSpaceId,
+        spaceName: space?.name || 'Пространство',
+        createdBy: user.uid,
+        createdAt: serverTimestamp(),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        used: false,
+      });
+      const link = `${window.location.origin}?invite=${tokenRef.id}`;
+      setInviteLink(link);
+    } catch (error) {
+      console.error('Error generating invite link:', error);
+      alert('Ошибка при создании ссылки');
+    } finally {
+      setIsGeneratingLink(false);
+    }
+  };
+
+  const copyInviteLink = async () => {
+    if (!inviteLink) return;
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      // fallback
+      const el = document.createElement('textarea');
+      el.value = inviteLink;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    }
+  };
+
   const removeMember = async (memberId: string, memberUserId: string) => {
     if (!managingSpaceId) return;
 
@@ -522,10 +568,12 @@ export const SpaceSwitcher: React.FC<SpaceSwitcherProps> = ({ isOpen, onClose })
 
                 {/* Invite New Member */}
                 {canManageSpace(spaces.find(s => s.id === managingSpaceId)!) && (
-                  <div className="pt-4 border-t border-white/10">
-                    <h3 className="text-sm font-black text-white uppercase font-display mb-3">
+                  <div className="pt-4 border-t border-white/10 space-y-3">
+                    <h3 className="text-sm font-black text-white uppercase font-display">
                       Пригласить участника
                     </h3>
+
+                    {/* Email invite */}
                     <div className="flex gap-2">
                       <input
                         type="email"
@@ -543,10 +591,61 @@ export const SpaceSwitcher: React.FC<SpaceSwitcherProps> = ({ isOpen, onClose })
                         {isSendingInvite ? (
                           <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         ) : (
-                          <UserPlus size={20} />
+                          <Mail size={20} />
                         )}
                       </button>
                     </div>
+
+                    {/* Divider */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-px bg-white/10" />
+                      <span className="text-[10px] text-[#8b7ca8] font-black uppercase tracking-wider font-display">или</span>
+                      <div className="flex-1 h-px bg-white/10" />
+                    </div>
+
+                    {/* Link invite */}
+                    {!inviteLink ? (
+                      <button
+                        onClick={generateInviteLink}
+                        disabled={isGeneratingLink}
+                        className="w-full py-3 rounded-xl bg-white/5 border border-white/10 text-[#8b7ca8] font-bold text-sm flex items-center justify-center gap-2 hover:bg-white/10 hover:text-white transition-all disabled:opacity-50"
+                      >
+                        {isGeneratingLink ? (
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
+                          <Link size={16} />
+                        )}
+                        Создать ссылку-приглашение
+                      </button>
+                    ) : (
+                      <div className="bg-[#150a24] border border-accent-purple/30 rounded-xl p-3">
+                        <p className="text-[10px] text-[#8b7ca8] font-black uppercase tracking-wider font-display mb-2">
+                          Ссылка действительна 7 дней
+                        </p>
+                        <div className="flex gap-2">
+                          <div className="flex-1 bg-black/30 rounded-lg px-3 py-2 text-xs text-[#8b7ca8] font-mono truncate">
+                            {inviteLink}
+                          </div>
+                          <button
+                            onClick={copyInviteLink}
+                            className={cn(
+                              "w-10 h-10 rounded-lg flex items-center justify-center transition-all flex-shrink-0",
+                              linkCopied
+                                ? "bg-green-500/20 text-green-400"
+                                : "bg-accent-purple/20 text-accent-purple hover:bg-accent-purple/30"
+                            )}
+                          >
+                            {linkCopied ? <Check size={16} /> : <Copy size={16} />}
+                          </button>
+                        </div>
+                        <button
+                          onClick={() => { setInviteLink(null); setLinkCopied(false); }}
+                          className="mt-2 text-[10px] text-[#8b7ca8] hover:text-white transition-colors font-display"
+                        >
+                          Создать новую ссылку
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 

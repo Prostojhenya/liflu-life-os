@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { auth, db, signInWithGoogle, handleFirestoreError, OperationType } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useStore, calculateLevel, INITIAL_STATS } from './store/useStore';
 import { Layout } from './components/Layout';
 import { Dashboard } from './components/Dashboard';
@@ -18,6 +18,65 @@ import { LogIn, Sparkles } from 'lucide-react';
 export default function App() {
   const { user, setUser, isAuthReady, setAuthReady, activeTab } = useStore();
   const [error, setError] = React.useState<string | null>(null);
+  const [inviteToken, setInviteToken] = React.useState<string | null>(null);
+  const [inviteProcessing, setInviteProcessing] = React.useState(false);
+  const [inviteInfo, setInviteInfo] = React.useState<{ spaceName: string; spaceId: string } | null>(null);
+
+  // Check for invite link on load
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('invite');
+    if (token) {
+      setInviteToken(token);
+      // Load invite info
+      getDoc(doc(db, 'inviteLinks', token)).then((snap) => {
+        if (snap.exists() && !snap.data().used) {
+          setInviteInfo({ spaceName: snap.data().spaceName, spaceId: snap.data().spaceId });
+        }
+      }).catch(console.error);
+    }
+  }, []);
+
+  // Process invite after login
+  useEffect(() => {
+    if (!user || !inviteToken || inviteProcessing) return;
+    const processInvite = async () => {
+      setInviteProcessing(true);
+      try {
+        const tokenSnap = await getDoc(doc(db, 'inviteLinks', inviteToken));
+        if (!tokenSnap.exists() || tokenSnap.data().used) {
+          alert('Ссылка недействительна или уже использована');
+          setInviteToken(null);
+          return;
+        }
+        const { spaceId, spaceName } = tokenSnap.data();
+        // Add user as member
+        await setDoc(doc(db, `spaces/${spaceId}/members`, user.uid), {
+          userId: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+          role: 'member',
+          joinedAt: serverTimestamp(),
+        });
+        // Mark token as used
+        await updateDoc(doc(db, 'inviteLinks', inviteToken), { used: true, usedBy: user.uid });
+        // Switch to space
+        await updateDoc(doc(db, 'users', user.uid), { currentSpaceId: spaceId });
+        setUser({ ...user, currentSpaceId: spaceId });
+        // Clean URL
+        window.history.replaceState({}, '', window.location.pathname);
+        setInviteToken(null);
+        setInviteInfo(null);
+        alert(`Вы вступили в пространство "${spaceName}"!`);
+      } catch (e) {
+        console.error('Invite processing error:', e);
+        alert('Ошибка при вступлении в пространство');
+      } finally {
+        setInviteProcessing(false);
+      }
+    };
+    processInvite();
+  }, [user, inviteToken]);
 
   useEffect(() => {
     try {

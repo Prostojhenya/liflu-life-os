@@ -172,6 +172,22 @@ service cloud.firestore {
     }
 
     // ===============================================================
+    // Invite Links (token-based)
+    // ===============================================================
+    match /inviteLinks/{tokenId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() &&
+        incoming().keys().hasAll(['spaceId', 'spaceName', 'createdBy', 'createdAt', 'expiresAt', 'used']) &&
+        incoming().createdBy == request.auth.uid &&
+        (get(/databases/$(database)/documents/spaces/$(incoming().spaceId)).data.ownerId == request.auth.uid ||
+         (exists(/databases/$(database)/documents/spaces/$(incoming().spaceId)/members/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/spaces/$(incoming().spaceId)/members/$(request.auth.uid)).data.role == 'admin'));
+      allow update: if isSignedIn() &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['used', 'usedBy']) &&
+        incoming().used == true;
+    }
+
+    // ===============================================================
     // Invites
     // ===============================================================
     match /invites/{inviteId} {

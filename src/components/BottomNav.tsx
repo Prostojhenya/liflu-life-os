@@ -1,13 +1,13 @@
 import React from 'react';
 import { useStore } from '@/store/useStore';
-import { Home, CheckSquare, ShoppingCart, User, Plus } from 'lucide-react';
+import { Home, CheckSquare, ShoppingCart, User, Plus, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { id: 'dashboard', icon: Home, label: 'Главная' },
   { id: 'tasks', icon: CheckSquare, label: 'Задачи' },
   { id: 'add', icon: Plus, label: 'Добавить', isCenter: true },
-  { id: 'shopping', icon: ShoppingCart, label: 'Покупки' },
+  { id: 'chat', icon: MessageCircle, label: 'Чат' },
   { id: 'profile', icon: User, label: 'Профиль' },
 ] as const;
 
