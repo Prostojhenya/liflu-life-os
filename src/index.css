@@ -52,7 +52,6 @@
   }
 
 
-
   .safe-area-bottom {
     padding-bottom: calc(0.5rem + var(--safe-area-inset-bottom));
   }

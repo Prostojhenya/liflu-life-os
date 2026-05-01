@@ -54,7 +54,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const hideNav = isChat && keyboardOpen;
 
   return (
-    <div className="flex flex-col h-screen bg-[#0b0416] text-white font-sans overflow-hidden">
+    <div className="flex flex-col bg-[#0b0416] text-white font-sans overflow-hidden" style={{ height: '100dvh' }}>
 
       {/* Top bar — hidden in chat (chat has its own header) */}
       {!isChat && (
