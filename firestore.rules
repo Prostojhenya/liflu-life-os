@@ -66,6 +66,13 @@ service cloud.firestore {
         allow create: if isMember(spaceId);
         allow update: if isMember(spaceId);
         allow delete: if isMember(spaceId);
+
+        match /completions/{completionId} {
+          allow read:   if isMember(spaceId);
+          allow create: if isMember(spaceId) && request.resource.data.userId == uid();
+          allow update: if isMember(spaceId) && resource.data.userId == uid();
+          allow delete: if isMember(spaceId);
+        }
       }
 
       match /shopping/{itemId} {
