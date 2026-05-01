@@ -21,6 +21,14 @@
     --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
   }
 
+  html {
+    overscroll-behavior: none;
+    overflow: hidden;
+    height: 100%;
+    width: 100%;
+    position: fixed;
+  }
+
   body {
     @apply bg-surface text-white antialiased font-sans overflow-x-hidden;
     background-image: 
@@ -28,7 +36,10 @@
       radial-gradient(circle at -10% 40%, rgba(236, 72, 153, 0.05) 0%, transparent 40%);
     background-attachment: fixed;
     -webkit-tap-highlight-color: transparent;
-    overscroll-behavior-y: none;
+    overscroll-behavior: none;
+    overflow: hidden;
+    height: 100%;
+    width: 100%;
   }
 
 

@@ -62,7 +62,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       />
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto custom-scrollbar">
+      <main className="flex-1 overflow-y-auto overscroll-none custom-scrollbar" style={{ WebkitOverflowScrolling: 'auto' }}>
         <motion.div
           key={activeTab}
           initial={{ opacity: 0, x: 20 }}
