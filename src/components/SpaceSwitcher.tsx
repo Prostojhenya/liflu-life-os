@@ -169,12 +169,16 @@ export const SpaceSwitcher: React.FC<SpaceSwitcherProps> = ({ isOpen, onClose })
 
     setIsCreating(true);
     try {
+      console.log('Creating space:', { name: newSpaceName, type: newSpaceType, ownerId: user.uid });
+      
       const spaceRef = await addDoc(collection(db, 'spaces'), {
         name: newSpaceName,
         type: newSpaceType,
         ownerId: user.uid,
         createdAt: serverTimestamp(),
       });
+
+      console.log('Space created:', spaceRef.id);
 
       // Add creator as admin member
       await setDoc(doc(db, `spaces/${spaceRef.id}/members`, user.uid), {
@@ -185,11 +189,14 @@ export const SpaceSwitcher: React.FC<SpaceSwitcherProps> = ({ isOpen, onClose })
         joinedAt: serverTimestamp(),
       });
 
+      console.log('Member added to space');
+
       setNewSpaceName('');
       setNewSpaceType('personal');
-      switchSpace(spaceRef.id);
+      await switchSpace(spaceRef.id);
     } catch (error) {
       console.error('Error creating space:', error);
+      alert('Ошибка при создании пространства: ' + (error instanceof Error ? error.message : String(error)));
     } finally {
       setIsCreating(false);
     }
@@ -519,6 +526,8 @@ export const SpaceSwitcher: React.FC<SpaceSwitcherProps> = ({ isOpen, onClose })
                     const isActive = space.id === user?.currentSpaceId;
                     const isOwner = space.ownerId === user?.uid;
                     
+                    console.log('Space:', space.name, 'Type:', space.type, 'IsOwner:', isOwner, 'OwnerId:', space.ownerId, 'UserId:', user?.uid);
+                    
                     return (
                       <div
                         key={space.id}
@@ -561,7 +570,11 @@ export const SpaceSwitcher: React.FC<SpaceSwitcherProps> = ({ isOpen, onClose })
                           </button>
                           {space.type === 'shared' && isOwner && (
                             <button
-                              onClick={() => setManagingSpaceId(space.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                console.log('Opening management for space:', space.id);
+                                setManagingSpaceId(space.id);
+                              }}
                               className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-[#8b7ca8] hover:bg-white/10 transition-colors"
                             >
                               <Settings size={18} />
