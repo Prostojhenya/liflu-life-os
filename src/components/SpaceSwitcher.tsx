@@ -52,6 +52,8 @@ export const SpaceSwitcher: React.FC<SpaceSwitcherProps> = ({ isOpen, onClose })
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [editingName, setEditingName] = useState('');
+  const [isSavingName, setIsSavingName] = useState(false);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -399,6 +401,21 @@ export const SpaceSwitcher: React.FC<SpaceSwitcherProps> = ({ isOpen, onClose })
     return member?.role === 'admin';
   };
 
+  const saveSpaceName = async () => {
+    if (!managingSpaceId || !editingName.trim() || isSavingName) return;
+    const space = spaces.find(s => s.id === managingSpaceId);
+    if (!space || editingName.trim() === space.name) return;
+    setIsSavingName(true);
+    try {
+      await updateDoc(doc(db, 'spaces', managingSpaceId), { name: editingName.trim() });
+    } catch (error) {
+      console.error('Error renaming space:', error);
+      alert('Ошибка при переименовании');
+    } finally {
+      setIsSavingName(false);
+    }
+  };
+
   const deleteSpace = async (spaceId: string) => {
     const space = spaces.find(s => s.id === spaceId);
     if (!space || space.ownerId !== user?.uid) {
@@ -520,6 +537,29 @@ export const SpaceSwitcher: React.FC<SpaceSwitcherProps> = ({ isOpen, onClose })
             {/* Managing Space View */}
             {managingSpaceId ? (
               <div className="space-y-4">
+                {/* Rename Space */}
+                {canManageSpace(spaces.find(s => s.id === managingSpaceId)!) && (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={editingName}
+                      onChange={(e) => setEditingName(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && saveSpaceName()}
+                      placeholder="Название пространства..."
+                      className="flex-1 bg-[#150a24] border border-white/10 rounded-xl px-4 py-2.5 text-sm font-black text-white placeholder:text-[#8b7ca8]/50 font-display focus:outline-none focus:border-accent-purple transition-all uppercase"
+                    />
+                    <button
+                      onClick={saveSpaceName}
+                      disabled={!editingName.trim() || isSavingName || editingName.trim() === spaces.find(s => s.id === managingSpaceId)?.name}
+                      className="px-4 h-10 bg-accent-purple text-white rounded-xl text-xs font-black uppercase font-display disabled:opacity-40 active:scale-95 transition-all"
+                    >
+                      {isSavingName ? (
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : 'Сохранить'}
+                    </button>
+                  </div>
+                )}
+
                 {/* Current Members */}
                 <div>
                   <h3 className="text-sm font-black text-white uppercase font-display mb-3">
@@ -718,6 +758,7 @@ export const SpaceSwitcher: React.FC<SpaceSwitcherProps> = ({ isOpen, onClose })
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setManagingSpaceId(space.id);
+                                setEditingName(space.name);
                               }}
                               className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-[#8b7ca8] hover:bg-white/10 transition-colors flex-shrink-0"
                             >
