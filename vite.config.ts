@@ -18,7 +18,7 @@ export default defineConfig(({mode}) => {
           description: 'Your personal Life OS for tasks, habits, and goals.',
           theme_color: '#0b0416',
           background_color: '#0b0416',
-          display: 'standalone',
+          display: 'fullscreen',
       orientation: 'portrait-primary',
           icons: []
         }
