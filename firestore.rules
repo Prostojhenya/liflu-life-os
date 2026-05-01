@@ -91,6 +91,23 @@ service cloud.firestore {
     }
 
     // ===============================================================
+    // Conversations (direct & group chats)
+    // ===============================================================
+    match /conversations/{convId} {
+      allow read: if isSignedIn() && resource.data.participants.hasAny([uid()]);
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.participants.hasAny([uid()]);
+      allow update: if isSignedIn() && resource.data.participants.hasAny([uid()]);
+
+      match /messages/{msgId} {
+        allow read:   if isSignedIn() && get(/databases/$(database)/documents/conversations/$(convId)).data.participants.hasAny([uid()]);
+        allow create: if isSignedIn() && get(/databases/$(database)/documents/conversations/$(convId)).data.participants.hasAny([uid()]);
+        allow update: if isSignedIn() && resource.data.senderId == uid();
+        allow delete: if isSignedIn() && resource.data.senderId == uid();
+      }
+    }
+
+    // ===============================================================
     // Invite Links
     // ===============================================================
     match /inviteLinks/{tokenId} {
