@@ -13,26 +13,10 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      // Lock screen orientation to portrait
       if (screen.orientation && screen.orientation.lock) {
-        screen.orientation.lock('portrait').catch(() => {});
+        screen.orientation.lock('portrait-primary').catch(() => {});
       }
     </script>
-    <style>
-      /* Force portrait: rotate content back when device is landscape */
-      @media screen and (orientation: landscape) {
-        html {
-          transform: rotate(-90deg);
-          transform-origin: left top;
-          width: 100vh;
-          height: 100vw;
-          overflow-x: hidden;
-          position: absolute;
-          top: 100%;
-          left: 0;
-        }
-      }
-    </style>
   </body>
 </html>
 

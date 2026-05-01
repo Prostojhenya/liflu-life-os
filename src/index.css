@@ -31,19 +31,7 @@
     overscroll-behavior-y: none;
   }
 
-  /* Force portrait orientation — rotate content back, no overlay */
-  @media screen and (orientation: landscape) and (max-width: 1024px) {
-    html {
-      transform: rotate(-90deg);
-      transform-origin: left top;
-      width: 100vh;
-      height: 100vw;
-      overflow: hidden;
-      position: fixed;
-      top: 100%;
-      left: 0;
-    }
-  }
+
 
   .safe-area-bottom {
     padding-bottom: calc(0.5rem + var(--safe-area-inset-bottom));
