@@ -325,7 +325,7 @@ export const Chat: React.FC = () => {
   // ── New Group View ──────────────────────────────────────────────────────────
   if (view === 'new-group') {
     return (
-      <div className="flex flex-col h-[calc(100vh-160px)]">
+      <div className="flex flex-col h-full">
         <div className="flex items-center gap-3 mb-4">
           <button onClick={() => setView('list')} className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-[#8b7ca8]">
             <ArrowLeft size={18} />
@@ -386,13 +386,25 @@ export const Chat: React.FC = () => {
 
   // ── Chat View ───────────────────────────────────────────────────────────────
   if (view === 'chat' && activeConv) {
-    const convName = getConvName(activeConv);
-    const convAvatar = getConvAvatar(activeConv);
+    // For direct chat show other person's name, for group show members list
+    const otherUid = activeConv.type === 'direct'
+      ? activeConv.participants.find(p => p !== user.uid)
+      : null;
+    const otherProfile = otherUid ? activeConv.participantProfiles?.[otherUid] : null;
+    const convAvatar = otherUid ? getAvatar(otherUid, otherProfile?.photoURL) : null;
+    const convTitle = otherProfile?.displayName || (
+      activeConv.type === 'group'
+        ? Object.values(activeConv.participantProfiles || {})
+            .filter(p => p.uid !== user.uid)
+            .map(p => p.displayName)
+            .join(', ')
+        : 'Чат'
+    );
 
     return (
-      <div className="flex flex-col h-[calc(100vh-160px)]">
+      <div className="flex flex-col h-full">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-3 pb-3 border-b border-white/10">
+        <div className="flex items-center gap-3 mb-3 pb-3 border-b border-white/10 flex-shrink-0">
           <button onClick={() => { setView('list'); setActiveConv(null); setMessages([]); }}
             className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-[#8b7ca8] flex-shrink-0">
             <ArrowLeft size={18} />
@@ -402,15 +414,15 @@ export const Chat: React.FC = () => {
             : <div className="w-9 h-9 rounded-full bg-accent-purple/20 flex items-center justify-center flex-shrink-0"><Users size={16} className="text-accent-purple" /></div>
           }
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-black text-white uppercase font-display truncate">{convName}</p>
+            <p className="text-sm font-black text-white uppercase font-display truncate">{convTitle}</p>
             <p className="text-[10px] text-[#8b7ca8] font-display">
               {activeConv.type === 'group' ? `${activeConv.participants.length} участников` : 'Личный чат'}
             </p>
           </div>
         </div>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto space-y-0.5 pr-1 custom-scrollbar">
+        {/* Messages — flex-1 + overflow scroll */}
+        <div className="flex-1 overflow-y-auto space-y-0.5 pr-1 custom-scrollbar min-h-0">
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-center py-12">
               <div className="text-4xl mb-3">💬</div>
@@ -452,8 +464,8 @@ export const Chat: React.FC = () => {
           <div ref={scrollRef} />
         </div>
 
-        {/* Input */}
-        <form onSubmit={sendMessage} className="mt-3 flex gap-2">
+        {/* Input — always at bottom, never scrolls */}
+        <form onSubmit={sendMessage} className="mt-3 flex gap-2 flex-shrink-0">
           <input
             ref={inputRef}
             type="text"
@@ -476,7 +488,7 @@ export const Chat: React.FC = () => {
 
   // ── List View (default) ─────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col h-[calc(100vh-160px)]">
+    <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-xl font-black text-white uppercase font-display">Чаты</h2>

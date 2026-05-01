@@ -12,6 +12,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const { activeTab, user } = useStore();
   const [isSpaceSwitcherOpen, setIsSpaceSwitcherOpen] = useState(false);
   const [currentSpace, setCurrentSpace] = useState<{ name: string; type: 'personal' | 'shared' } | null>(null);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   useEffect(() => {
     if (!user?.currentSpaceId) return;
@@ -29,10 +30,28 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     loadSpace();
   }, [user?.currentSpaceId]);
 
+  // Detect virtual keyboard via visualViewport
+  useEffect(() => {
+    if (!window.visualViewport) return;
+
+    const onResize = () => {
+      const viewportHeight = window.visualViewport!.height;
+      const windowHeight = window.innerHeight;
+      // Keyboard is open if viewport is significantly smaller than window
+      setKeyboardOpen(windowHeight - viewportHeight > 100);
+    };
+
+    window.visualViewport.addEventListener('resize', onResize);
+    return () => window.visualViewport!.removeEventListener('resize', onResize);
+  }, []);
+
+  const isChat = activeTab === 'chat';
+  const hideNav = isChat && keyboardOpen;
+
   return (
     <div className="flex flex-col h-screen bg-[#0b0416] text-white font-sans overflow-hidden">
 
-      {/* Top bar — full width, no gaps */}
+      {/* Top bar */}
       <header className="shrink-0 z-20 bg-[#0b0416]">
         <button
           onClick={() => setIsSpaceSwitcherOpen(true)}
@@ -62,20 +81,23 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       />
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto overscroll-none custom-scrollbar" style={{ WebkitOverflowScrolling: 'auto' }}>
+      <main className={cn('flex-1 min-h-0', !isChat && 'overflow-y-auto custom-scrollbar')}>
         <motion.div
           key={activeTab}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          className="p-5 pb-28 max-w-4xl mx-auto"
+          className={cn(
+            'max-w-4xl mx-auto',
+            isChat ? 'p-4 h-full flex flex-col' : 'p-5 pb-28'
+          )}
         >
           {children}
         </motion.div>
       </main>
 
-      {/* Bottom Navigation */}
-      <BottomNav />
+      {/* Bottom Navigation — hidden when keyboard is open in chat */}
+      {!hideNav && <BottomNav />}
     </div>
   );
 };
