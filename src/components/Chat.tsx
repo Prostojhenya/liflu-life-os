@@ -326,11 +326,11 @@ export const Chat: React.FC = () => {
   if (view === 'new-group') {
     return (
       <div className="flex flex-col h-full">
-        <div className="flex items-center gap-3 mb-4">
-          <button onClick={() => setView('list')} className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-[#8b7ca8]">
+        <div className="bg-[#150a24] border-b border-white/10 px-4 py-3.5 flex items-center gap-3 flex-shrink-0 -mx-4 -mt-4 mb-4">
+          <button onClick={() => setView('list')} className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-[#8b7ca8]">
             <ArrowLeft size={18} />
           </button>
-          <h2 className="text-lg font-black text-white uppercase font-display">Новая группа</h2>
+          <p className="text-xs font-black text-white uppercase font-display">Новая группа</p>
         </div>
 
         <input
@@ -403,10 +403,10 @@ export const Chat: React.FC = () => {
 
     return (
       <div className="flex flex-col h-full">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-3 pb-3 border-b border-white/10 flex-shrink-0">
+        {/* Chat header — styled like the top space bar */}
+        <div className="bg-[#150a24] border-b border-white/10 px-4 py-3 flex items-center gap-3 flex-shrink-0 -mx-4 -mt-4 mb-3">
           <button onClick={() => { setView('list'); setActiveConv(null); setMessages([]); }}
-            className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-[#8b7ca8] flex-shrink-0">
+            className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-[#8b7ca8] flex-shrink-0">
             <ArrowLeft size={18} />
           </button>
           {convAvatar
@@ -414,8 +414,8 @@ export const Chat: React.FC = () => {
             : <div className="w-9 h-9 rounded-full bg-accent-purple/20 flex items-center justify-center flex-shrink-0"><Users size={16} className="text-accent-purple" /></div>
           }
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-black text-white uppercase font-display truncate">{convTitle}</p>
-            <p className="text-[10px] text-[#8b7ca8] font-display">
+            <p className="text-xs font-black text-white uppercase font-display truncate">{convTitle}</p>
+            <p className="text-[9px] text-[#8b7ca8] font-display">
               {activeConv.type === 'group' ? `${activeConv.participants.length} участников` : 'Личный чат'}
             </p>
           </div>
@@ -489,14 +489,14 @@ export const Chat: React.FC = () => {
   // ── List View (default) ─────────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-xl font-black text-white uppercase font-display">Чаты</h2>
+      {/* Top bar styled like space header */}
+      <div className="bg-[#150a24] border-b border-white/10 px-4 py-3.5 flex items-center justify-between flex-shrink-0 -mx-4 -mt-4 mb-3">
+        <p className="text-xs font-black text-white uppercase font-display">Чаты</p>
         <button
           onClick={() => setView('new-group')}
-          className="w-9 h-9 rounded-xl bg-accent-purple/20 border border-accent-purple/30 flex items-center justify-center text-accent-purple active:scale-95 transition-all"
+          className="w-8 h-8 rounded-xl bg-accent-purple/20 border border-accent-purple/30 flex items-center justify-center text-accent-purple active:scale-95 transition-all"
         >
-          <Plus size={18} />
+          <Plus size={16} />
         </button>
       </div>
 

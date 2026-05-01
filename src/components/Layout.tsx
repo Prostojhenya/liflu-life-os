@@ -51,29 +51,31 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   return (
     <div className="flex flex-col h-screen bg-[#0b0416] text-white font-sans overflow-hidden">
 
-      {/* Top bar */}
-      <header className="shrink-0 z-20 bg-[#0b0416]">
-        <button
-          onClick={() => setIsSpaceSwitcherOpen(true)}
-          className="w-full bg-[#150a24] border-b border-white/10 px-5 py-3.5 flex items-center gap-3 active:bg-white/5 transition-colors"
-        >
-          <div className="w-8 h-8 bg-accent-purple/20 rounded-full flex items-center justify-center flex-shrink-0">
-            {currentSpace?.type === 'shared'
-              ? <Users size={16} className="text-accent-purple" />
-              : <Lock size={16} className="text-accent-purple" />
-            }
-          </div>
-          <div className="text-left flex-1 min-w-0">
-            <p className="text-xs font-black text-white uppercase font-display truncate">
-              {currentSpace?.name || 'Personal Space'}
-            </p>
-            <p className="text-[9px] text-[#8b7ca8] font-display">
-              {currentSpace?.type === 'shared' ? 'Групповое пространство' : 'Личное пространство'}
-            </p>
-          </div>
-          <ChevronDown size={16} className="text-[#8b7ca8] flex-shrink-0" />
-        </button>
-      </header>
+      {/* Top bar — hidden in chat (chat has its own header) */}
+      {!isChat && (
+        <header className="shrink-0 z-20 bg-[#0b0416]">
+          <button
+            onClick={() => setIsSpaceSwitcherOpen(true)}
+            className="w-full bg-[#150a24] border-b border-white/10 px-5 py-3.5 flex items-center gap-3 active:bg-white/5 transition-colors"
+          >
+            <div className="w-8 h-8 bg-accent-purple/20 rounded-full flex items-center justify-center flex-shrink-0">
+              {currentSpace?.type === 'shared'
+                ? <Users size={16} className="text-accent-purple" />
+                : <Lock size={16} className="text-accent-purple" />
+              }
+            </div>
+            <div className="text-left flex-1 min-w-0">
+              <p className="text-xs font-black text-white uppercase font-display truncate">
+                {currentSpace?.name || 'Personal Space'}
+              </p>
+              <p className="text-[9px] text-[#8b7ca8] font-display">
+                {currentSpace?.type === 'shared' ? 'Групповое пространство' : 'Личное пространство'}
+              </p>
+            </div>
+            <ChevronDown size={16} className="text-[#8b7ca8] flex-shrink-0" />
+          </button>
+        </header>
+      )}
 
       <SpaceSwitcher
         isOpen={isSpaceSwitcherOpen}
