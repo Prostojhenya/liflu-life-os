@@ -23,12 +23,24 @@ export default defineConfig(({mode}) => {
           orientation: 'portrait-primary',
           start_url: '/',
           scope: '/',
-      icons: [
+          icons: [
             {
-              src: '/img/Loading.png',
+              src: '/img/icon.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any maskable'
+            },
+            {
+              src: '/img/icon.png',
+              sizes: '192x192',
+              type: 'image/png',
+              purpose: 'any'
+            },
+            {
+              src: '/img/icon.png',
+              sizes: '180x180',
+              type: 'image/png',
+              purpose: 'apple touch icon'
             }
           ]
         }
