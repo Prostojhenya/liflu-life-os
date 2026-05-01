@@ -326,7 +326,7 @@ export const Chat: React.FC = () => {
   if (view === 'new-group') {
     return (
       <div className="flex flex-col h-full">
-        <div className="bg-[#150a24] border-b border-white/10 px-4 py-3.5 flex items-center gap-3 flex-shrink-0 -mx-4 -mt-4 mb-4">
+        <div className="bg-[#150a24] border-b border-white/10 px-4 py-3.5 flex items-center gap-3 flex-shrink-0  mb-4">
           <button onClick={() => setView('list')} className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-[#8b7ca8]">
             <ArrowLeft size={18} />
           </button>
@@ -404,7 +404,7 @@ export const Chat: React.FC = () => {
     return (
       <div className="flex flex-col h-full">
         {/* Chat header — styled like the top space bar */}
-        <div className="bg-[#150a24] border-b border-white/10 px-4 py-3 flex items-center gap-3 flex-shrink-0 -mx-4 -mt-4 mb-3">
+        <div className="bg-[#150a24] border-b border-white/10 px-4 py-3 flex items-center gap-3 flex-shrink-0  mb-3">
           <button onClick={() => { setView('list'); setActiveConv(null); setMessages([]); }}
             className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-[#8b7ca8] flex-shrink-0">
             <ArrowLeft size={18} />
@@ -472,6 +472,11 @@ export const Chat: React.FC = () => {
             value={input}
             onChange={e => setInput(e.target.value)}
             placeholder="Сообщение..."
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="sentences"
+            spellCheck={false}
+            enterKeyHint="send"
             className="flex-1 bg-[#150a24] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder:text-[#8b7ca8]/50 font-display focus:outline-none focus:border-accent-purple transition-all"
           />
           <button
@@ -490,7 +495,7 @@ export const Chat: React.FC = () => {
   return (
     <div className="flex flex-col h-full">
       {/* Top bar styled like space header */}
-      <div className="bg-[#150a24] border-b border-white/10 px-4 py-3.5 flex items-center justify-between flex-shrink-0 -mx-4 -mt-4 mb-3">
+      <div className="bg-[#150a24] border-b border-white/10 px-4 py-3.5 flex items-center justify-between flex-shrink-0  mb-3">
         <p className="text-xs font-black text-white uppercase font-display">Чаты</p>
         <button
           onClick={() => setView('new-group')}

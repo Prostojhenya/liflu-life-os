@@ -88,15 +88,18 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       />
 
       {/* Main Content */}
-      <main className={cn('flex-1 min-h-0', !isChat && 'overflow-y-auto custom-scrollbar')}>
+      <main className={cn(
+        'min-h-0',
+        isChat ? 'flex-1 flex flex-col overflow-hidden' : 'flex-1 overflow-y-auto custom-scrollbar'
+      )}>
         <motion.div
           key={activeTab}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           className={cn(
-            'max-w-4xl mx-auto',
-            isChat ? 'p-4 h-full flex flex-col' : 'p-5 pb-28'
+            'max-w-4xl mx-auto w-full',
+            isChat ? 'flex-1 flex flex-col overflow-hidden px-4 pt-0 pb-0' : 'p-5 pb-28'
           )}
         >
           {children}
