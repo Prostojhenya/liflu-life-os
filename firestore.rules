@@ -1,223 +1,116 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Default deny
+    // Default deny all
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // ===============================================================
-    // Global Helpers
-    // ===============================================================
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+    function uid() {
+      return request.auth.uid;
     }
 
-    function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
-    }
-
-    function existing() {
-      return resource.data;
-    }
-
-    function incoming() {
-      return request.resource.data;
-    }
-
-    // RBAC: Check if user is a member of a space
     function isMember(spaceId) {
-      return isSignedIn() && exists(/databases/$(database)/documents/spaces/$(spaceId)/members/$(request.auth.uid));
+      return isSignedIn() && exists(/databases/$(database)/documents/spaces/$(spaceId)/members/$(uid()));
     }
 
-    function isAdmin(spaceId) {
-      return isSignedIn() && (
-        get(/databases/$(database)/documents/spaces/$(spaceId)).data.ownerId == request.auth.uid ||
-        get(/databases/$(database)/documents/spaces/$(spaceId)/members/$(request.auth.uid)).data.role == 'admin'
-      );
+    function isSpaceOwner(spaceId) {
+      return isSignedIn() && get(/databases/$(database)/documents/spaces/$(spaceId)).data.ownerId == uid();
     }
 
     // ===============================================================
-    // Validation Schemas
+    // Users
     // ===============================================================
-    function isValidUser(data) {
-      return data.keys().hasAll(['uid', 'email', 'displayName']) &&
-             data.uid == request.auth.uid &&
-             data.email is string && data.email.size() <= 256;
-    }
-
-    function isValidSpace(data) {
-      return data.keys().hasAll(['name', 'type', 'ownerId', 'createdAt']) &&
-             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
-             data.ownerId == request.auth.uid;
-    }
-
-    function isValidTask(data) {
-      return data.keys().hasAll(['spaceId', 'title', 'completed', 'createdAt']) &&
-             data.title is string && data.title.size() > 0 && data.title.size() <= 255 &&
-             data.completed is bool &&
-             data.spaceId is string &&
-             (data.xpAwarded == null || data.xpAwarded is bool);
-    }
-
-    function isValidHabit(data) {
-      return data.keys().hasAll(['spaceId', 'title', 'streak', 'createdAt']) &&
-             data.title is string && data.title.size() > 0 && data.title.size() <= 255 &&
-             data.streak is number &&
-             data.spaceId is string;
-    }
-
-    function isValidShoppingItem(data) {
-      return data.keys().hasAll(['spaceId', 'name', 'completed', 'createdAt']) &&
-             data.name is string && data.name.size() > 0 && data.name.size() <= 255 &&
-             data.completed is bool;
-    }
-
-    function isValidMessage(data) {
-      return data.keys().hasAll(['spaceId', 'text', 'isAi', 'createdAt']) &&
-             data.text is string && data.text.size() > 0 && data.text.size() <= 5000 &&
-             data.isAi is bool;
-    }
-
-    function isValidGoal(data) {
-      return data.keys().hasAll(['spaceId', 'title', 'progress', 'target', 'createdAt']) &&
-             data.title is string && data.title.size() > 0 && data.title.size() <= 255 &&
-             (data.progress is number || data.progress is int) && 
-             (data.target is number || data.target is int) &&
-             data.spaceId is string;
-    }
-
-    // ===============================================================
-    // Routes
-    // ===============================================================
-
     match /users/{userId} {
-      allow create, update: if isOwner(userId) && isValidUser(incoming());
-      allow read: if isOwner(userId);
+      allow read: if isSignedIn() && uid() == userId;
+      allow create: if isSignedIn() && uid() == userId;
+      allow update: if isSignedIn() && uid() == userId;
     }
 
+    // ===============================================================
+    // Spaces
+    // ===============================================================
     match /spaces/{spaceId} {
-      allow get: if isSignedIn() && (existing().ownerId == request.auth.uid || isMember(spaceId));
-      allow list: if isSignedIn();
-      allow create: if isSignedIn() && isValidSpace(incoming()) && incoming().ownerId == request.auth.uid;
-      allow update: if isSignedIn() && (isAdmin(spaceId));
-      allow delete: if isSignedIn() && existing().ownerId == request.auth.uid;
+      allow get:    if isSignedIn() && (resource.data.ownerId == uid() || isMember(spaceId));
+      allow list:   if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.ownerId == uid();
+      allow update: if isSignedIn() && resource.data.ownerId == uid();
+      allow delete: if isSignedIn() && resource.data.ownerId == uid();
 
       match /members/{memberId} {
-        allow read: if isMember(spaceId);
+        allow read:   if isSignedIn() && (isMember(spaceId) || get(/databases/$(database)/documents/spaces/$(spaceId)).data.ownerId == uid());
         allow create: if isSignedIn() && (
-          (memberId == request.auth.uid && get(/databases/$(database)/documents/spaces/$(spaceId)).data.ownerId == request.auth.uid) ||
-          isAdmin(spaceId) ||
-          (memberId == request.auth.uid && incoming().userId == request.auth.uid)
+          get(/databases/$(database)/documents/spaces/$(spaceId)).data.ownerId == uid() ||
+          (memberId == uid() && request.resource.data.userId == uid())
         );
-        allow update: if isSignedIn() &&
-          get(/databases/$(database)/documents/spaces/$(spaceId)).data.ownerId == request.auth.uid;
-        // Allow delete: owner (checked via spaceOwnerId field stored in doc), self-removal, or direct owner check
+        allow update: if isSignedIn() && get(/databases/$(database)/documents/spaces/$(spaceId)).data.ownerId == uid();
         allow delete: if isSignedIn() && (
-          memberId == request.auth.uid ||
-          (resource.data.keys().hasAll(['spaceOwnerId']) && resource.data.spaceOwnerId == request.auth.uid) ||
-          get(/databases/$(database)/documents/spaces/$(spaceId)).data.ownerId == request.auth.uid
+          memberId == uid() ||
+          get(/databases/$(database)/documents/spaces/$(spaceId)).data.ownerId == uid()
         );
       }
 
       match /tasks/{taskId} {
-        allow list: if isMember(spaceId);
-        allow get: if isMember(spaceId);
-        allow create: if isMember(spaceId) && isValidTask(incoming());
-        allow update: if isMember(spaceId) && (
-          // Action: Toggle Completed and Award XP
-          (incoming().diff(existing()).affectedKeys().hasOnly(['completed', 'xpAwarded']) && incoming().completed is bool) ||
-          // Action: Toggle Completed only
-          (incoming().diff(existing()).affectedKeys().hasOnly(['completed']) && incoming().completed is bool) ||
-          // Action: Full Edit
-          (isAdmin(spaceId) && isValidTask(incoming()))
-        );
+        allow read:   if isMember(spaceId);
+        allow create: if isMember(spaceId);
+        allow update: if isMember(spaceId);
         allow delete: if isMember(spaceId);
       }
 
       match /habits/{habitId} {
-        allow list: if isMember(spaceId);
-        allow get: if isMember(spaceId);
-        allow create: if isMember(spaceId) && isValidHabit(incoming());
-        allow update: if isMember(spaceId) && (
-          (incoming().diff(existing()).affectedKeys().hasOnly(['streak', 'lastCompleted'])) ||
-          (isAdmin(spaceId) && isValidHabit(incoming()))
-        );
+        allow read:   if isMember(spaceId);
+        allow create: if isMember(spaceId);
+        allow update: if isMember(spaceId);
         allow delete: if isMember(spaceId);
       }
 
       match /shopping/{itemId} {
-        allow list: if isMember(spaceId);
-        allow get: if isMember(spaceId);
-        allow create: if isMember(spaceId) && isValidShoppingItem(incoming());
-        allow update: if isMember(spaceId) && (
-          (incoming().diff(existing()).affectedKeys().hasOnly(['completed'])) ||
-          isValidShoppingItem(incoming())
-        );
+        allow read:   if isMember(spaceId);
+        allow create: if isMember(spaceId);
+        allow update: if isMember(spaceId);
         allow delete: if isMember(spaceId);
       }
 
       match /goals/{goalId} {
-        allow list: if isSignedIn();
-        allow get: if isSignedIn();
-        allow create: if isSignedIn();
-        allow update: if isSignedIn();
-        allow delete: if isSignedIn();
+        allow read:   if isMember(spaceId);
+        allow create: if isMember(spaceId);
+        allow update: if isMember(spaceId);
+        allow delete: if isMember(spaceId);
       }
 
       match /messages/{messageId} {
-        allow list: if isMember(spaceId);
-        allow get: if isMember(spaceId);
-        allow create: if isMember(spaceId) && isValidMessage(incoming());
+        allow read:   if isMember(spaceId);
+        allow create: if isMember(spaceId);
+        allow update: if isMember(spaceId);
+        allow delete: if isMember(spaceId);
       }
     }
 
     // ===============================================================
-    // Invite Links (token-based)
+    // Invite Links
     // ===============================================================
     match /inviteLinks/{tokenId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() &&
-        incoming().keys().hasAll(['spaceId', 'spaceName', 'createdBy', 'createdAt', 'expiresAt', 'used']) &&
-        incoming().createdBy == request.auth.uid &&
-        (get(/databases/$(database)/documents/spaces/$(incoming().spaceId)).data.ownerId == request.auth.uid ||
-         (exists(/databases/$(database)/documents/spaces/$(incoming().spaceId)/members/$(request.auth.uid)) &&
-          get(/databases/$(database)/documents/spaces/$(incoming().spaceId)/members/$(request.auth.uid)).data.role == 'admin'));
-      allow update: if isSignedIn() &&
-        incoming().diff(existing()).affectedKeys().hasOnly(['used', 'usedBy']) &&
-        incoming().used == true;
+      allow read:   if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.createdBy == uid();
+      allow update: if isSignedIn();
     }
 
     // ===============================================================
     // Invites
     // ===============================================================
     match /invites/{inviteId} {
-      // Anyone can read invites sent to their email or created by them
-      allow read: if isSignedIn() && (
-        existing().email == request.auth.token.email ||
-        existing().invitedBy == request.auth.uid
+      allow read:   if isSignedIn();
+      allow list:   if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.invitedBy == uid();
+      allow update: if isSignedIn() && (
+        resource.data.email == request.auth.token.email ||
+        resource.data.invitedBy == uid()
       );
-      // List invites — allow if signed in (client filters by email/invitedBy)
-      allow list: if isSignedIn();
-      // Space owners and admins can create invites
-      allow create: if isSignedIn() && 
-        incoming().keys().hasAll(['spaceId', 'spaceName', 'email', 'invitedBy', 'status', 'createdAt']) &&
-        incoming().invitedBy == request.auth.uid &&
-        incoming().status == 'pending' &&
-        (get(/databases/$(database)/documents/spaces/$(incoming().spaceId)).data.ownerId == request.auth.uid ||
-         (exists(/databases/$(database)/documents/spaces/$(incoming().spaceId)/members/$(request.auth.uid)) &&
-          get(/databases/$(database)/documents/spaces/$(incoming().spaceId)/members/$(request.auth.uid)).data.role == 'admin'));
-      // Users can update their own invites (accept/reject)
-      allow update: if isSignedIn() && 
-        existing().email == request.auth.token.email &&
-        incoming().diff(existing()).affectedKeys().hasOnly(['status']) &&
-        incoming().status in ['accepted', 'rejected'];
-      // Inviter can delete their invites
-      allow delete: if isSignedIn() && existing().invitedBy == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.invitedBy == uid();
     }
   }
 }
