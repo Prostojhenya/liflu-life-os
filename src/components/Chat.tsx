@@ -46,7 +46,7 @@ const getAvatar = (uid: string, photoURL?: string) =>
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export const Chat: React.FC = () => {
+export const Chat: React.FC<{ keyboardOpen?: boolean }> = ({ keyboardOpen = false }) => {
   const { user } = useStore();
   const [view, setView] = useState<'list' | 'chat' | 'new-group'>('list');
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -406,7 +406,7 @@ export const Chat: React.FC = () => {
     );
 
     return (
-      <div className="fixed inset-0 flex flex-col bg-[#0b0416] z-10">
+      <div className="fixed inset-x-0 top-0 flex flex-col bg-[#0b0416] z-10" style={{ bottom: keyboardOpen ? 0 : 'var(--nav-height, 64px)' }}>
         {/* Chat header — fixed at top */}
         <div className="bg-[#150a24] border-b border-white/10 px-4 py-3 flex items-center gap-3 flex-shrink-0">
           <button onClick={() => { setView('list'); setActiveConv(null); setMessages([]); }}
@@ -470,23 +470,29 @@ export const Chat: React.FC = () => {
 
         {/* Input */}
         <form onSubmit={sendMessage} className="px-4 py-3 flex gap-2 flex-shrink-0 bg-[#0b0416] border-t border-white/5">
-          <input
-            ref={inputRef}
-            type="text"
+          <textarea
+            ref={inputRef as any}
+            rows={1}
             value={input}
             onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(e as any); } }}
             placeholder="Сообщение..."
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="sentences"
             spellCheck={false}
-            enterKeyHint="send"
-            className="flex-1 bg-[#150a24] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder:text-[#8b7ca8]/50 font-display focus:outline-none focus:border-accent-purple transition-all"
+            className="flex-1 bg-[#150a24] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder:text-[#8b7ca8]/50 font-display focus:outline-none focus:border-accent-purple transition-all resize-none overflow-hidden leading-5"
+            style={{ maxHeight: '96px' }}
+            onInput={e => {
+              const t = e.target as HTMLTextAreaElement;
+              t.style.height = 'auto';
+              t.style.height = Math.min(t.scrollHeight, 96) + 'px';
+            }}
           />
           <button
             type="submit"
             disabled={!input.trim() || isSending}
-            className="w-11 h-11 bg-accent-purple text-white rounded-2xl flex items-center justify-center shadow-[0_0_12px_rgba(139,92,246,0.3)] active:scale-95 transition-all disabled:opacity-40"
+            className="w-11 h-11 bg-accent-purple text-white rounded-2xl flex items-center justify-center shadow-[0_0_12px_rgba(139,92,246,0.3)] active:scale-95 transition-all disabled:opacity-40 self-end flex-shrink-0"
           >
             <Send size={17} />
           </button>

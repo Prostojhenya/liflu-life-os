@@ -130,7 +130,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               : 'p-5 pb-28'
           )}
         >
-          {children}
+          {activeTab === 'chat' ? React.cloneElement(children as React.ReactElement, { keyboardOpen }) : children}
         </motion.div>
       </main>
 
