@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '@/firebase';
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp, doc, setDoc, getDocs, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, doc, setDoc, getDocs, getDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { useStore } from '@/store/useStore';
 import { X, Plus, Users, Lock, Settings, UserPlus, Mail, Trash2, Crown, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -53,51 +53,99 @@ export const SpaceSwitcher: React.FC<SpaceSwitcherProps> = ({ isOpen, onClose })
   useEffect(() => {
     if (!user?.uid) return;
 
-    // Get spaces where user is owner or member
-    const spacesQuery = query(collection(db, 'spaces'));
+    // Query spaces where user is the owner
+    const ownerQuery = query(
+      collection(db, 'spaces'),
+      where('ownerId', '==', user.uid)
+    );
 
-    const unsubscribe = onSnapshot(spacesQuery, async (snapshot) => {
-      const allSpaces = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Space));
+    // Query spaces where user is a member (via subcollection membership docs)
+    // We listen to the user's membership docs across all spaces
+    const membershipQuery = query(
+      collection(db, 'userMemberships'),
+      where('userId', '==', user.uid)
+    );
 
-      // Get spaces where user is a member
-      const memberSpaceIds = new Set<string>();
-      for (const space of allSpaces) {
-        const membersQuery = query(
-          collection(db, `spaces/${space.id}/members`),
-          where('userId', '==', user.uid)
-        );
-        const membersSnap = await getDocs(membersQuery);
-        if (!membersSnap.empty) {
-          memberSpaceIds.add(space.id);
+    let ownerSpaces: Space[] = [];
+    let memberSpaceIds: string[] = [];
+
+    const mergeAndSetSpaces = async (owned: Space[], memberIds: string[]) => {
+      // Fetch member spaces that aren't already in owned list
+      const ownedIds = new Set(owned.map(s => s.id));
+      const toFetch = memberIds.filter(id => !ownedIds.has(id));
+
+      const fetchedMemberSpaces: Space[] = [];
+      for (const spaceId of toFetch) {
+        try {
+          const spaceSnap = await getDoc(doc(db, 'spaces', spaceId));
+          if (spaceSnap.exists()) {
+            fetchedMemberSpaces.push({ id: spaceSnap.id, ...spaceSnap.data() } as Space);
+          }
+        } catch (e) {
+          console.error('Error fetching member space:', spaceId, e);
         }
       }
 
-      // Filter spaces where user is owner or member
-      const userSpaces = allSpaces.filter(space => 
-        space.ownerId === user.uid || memberSpaceIds.has(space.id)
-      );
+      const allUserSpaces = [...owned, ...fetchedMemberSpaces];
 
       // Get member counts for shared spaces
       const spacesWithCounts = await Promise.all(
-        userSpaces.map(async (space) => {
+        allUserSpaces.map(async (space) => {
           if (space.type === 'shared') {
-            const membersSnap = await getDocs(collection(db, `spaces/${space.id}/members`));
-            return { ...space, memberCount: membersSnap.size };
+            try {
+              const membersSnap = await getDocs(collection(db, `spaces/${space.id}/members`));
+              return { ...space, memberCount: membersSnap.size };
+            } catch {
+              return space;
+            }
           }
           return space;
         })
       );
 
       setSpaces(spacesWithCounts);
+    };
+
+    const unsubOwner = onSnapshot(ownerQuery, async (snapshot) => {
+      ownerSpaces = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Space));
+      await mergeAndSetSpaces(ownerSpaces, memberSpaceIds);
     }, (error) => {
-      console.error('Error fetching spaces:', error);
-      setSpaces([]);
+      console.error('Error fetching owned spaces:', error);
     });
 
-    return () => unsubscribe();
+    // Also listen to spaces where user is a member via subcollection
+    // We do a one-time fetch of all spaces and check membership
+    const fetchMemberSpaces = async () => {
+      try {
+        // Find spaces where user is a member by querying their member docs
+        // Since we can't query across subcollections directly, we store spaceIds in a top-level collection
+        const allSpacesSnap = await getDocs(query(collection(db, 'spaces')));
+        const ids: string[] = [];
+        for (const spaceDoc of allSpacesSnap.docs) {
+          if (spaceDoc.data().ownerId === user.uid) continue; // already covered
+          try {
+            const memberDoc = await getDocs(
+              query(collection(db, `spaces/${spaceDoc.id}/members`), where('userId', '==', user.uid))
+            );
+            if (!memberDoc.empty) {
+              ids.push(spaceDoc.id);
+            }
+          } catch {
+            // no access = not a member
+          }
+        }
+        memberSpaceIds = ids;
+        await mergeAndSetSpaces(ownerSpaces, memberSpaceIds);
+      } catch (error) {
+        console.error('Error fetching member spaces:', error);
+      }
+    };
+
+    fetchMemberSpaces();
+
+    return () => {
+      unsubOwner();
+    };
   }, [user?.uid]);
 
   // Load invites for current user

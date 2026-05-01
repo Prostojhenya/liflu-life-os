@@ -109,8 +109,12 @@ service cloud.firestore {
       match /members/{memberId} {
         allow read: if isMember(spaceId);
         allow create: if isSignedIn() && (
+          // Owner adds themselves when creating space
           (memberId == request.auth.uid && get(/databases/$(database)/documents/spaces/$(spaceId)).data.ownerId == request.auth.uid) ||
-          isAdmin(spaceId)
+          // Admin adds someone
+          isAdmin(spaceId) ||
+          // User adds themselves (e.g. accepting an invite) — memberId must match their uid
+          (memberId == request.auth.uid && incoming().userId == request.auth.uid)
         );
         allow update, delete: if isAdmin(spaceId);
       }
@@ -171,13 +175,13 @@ service cloud.firestore {
     // Invites
     // ===============================================================
     match /invites/{inviteId} {
-      // Anyone can read invites sent to their email
+      // Anyone can read invites sent to their email or created by them
       allow read: if isSignedIn() && (
         existing().email == request.auth.token.email ||
         existing().invitedBy == request.auth.uid
       );
-      // List invites for current user's email
-      allow list: if isSignedIn() && request.query.limit <= 50;
+      // List invites — allow if signed in (client filters by email/invitedBy)
+      allow list: if isSignedIn();
       // Space owners and admins can create invites
       allow create: if isSignedIn() && 
         incoming().keys().hasAll(['spaceId', 'spaceName', 'email', 'invitedBy', 'status', 'createdAt']) &&
