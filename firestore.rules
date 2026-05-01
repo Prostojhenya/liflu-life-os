@@ -166,5 +166,31 @@ service cloud.firestore {
         allow create: if isMember(spaceId) && isValidMessage(incoming());
       }
     }
+
+    // ===============================================================
+    // Invites
+    // ===============================================================
+    match /invites/{inviteId} {
+      // Anyone can read invites sent to their email
+      allow read: if isSignedIn() && (
+        existing().email == request.auth.token.email ||
+        existing().invitedBy == request.auth.uid
+      );
+      // List invites for current user's email
+      allow list: if isSignedIn() && request.query.limit <= 50;
+      // Admins can create invites
+      allow create: if isSignedIn() && 
+        incoming().keys().hasAll(['spaceId', 'spaceName', 'email', 'invitedBy', 'status', 'createdAt']) &&
+        incoming().invitedBy == request.auth.uid &&
+        incoming().status == 'pending' &&
+        isAdmin(incoming().spaceId);
+      // Users can update their own invites (accept/reject)
+      allow update: if isSignedIn() && 
+        existing().email == request.auth.token.email &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['status']) &&
+        incoming().status in ['accepted', 'rejected'];
+      // Inviter can delete their invites
+      allow delete: if isSignedIn() && existing().invitedBy == request.auth.uid;
+    }
   }
 }
