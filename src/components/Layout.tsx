@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '@/store/useStore';
 import { cn } from '@/lib/utils';
 import { motion } from 'motion/react';
@@ -13,6 +13,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const [isSpaceSwitcherOpen, setIsSpaceSwitcherOpen] = useState(false);
   const [currentSpace, setCurrentSpace] = useState<{ name: string; type: 'personal' | 'shared' } | null>(null);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!user?.currentSpaceId) return;
@@ -30,16 +31,36 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     loadSpace();
   }, [user?.currentSpaceId]);
 
-  // Detect virtual keyboard — works on iOS and Android
+  // iOS keyboard fix: lock the container height when keyboard opens
+  // so the layout doesn't scroll/jump
   useEffect(() => {
+    const initialHeight = window.innerHeight;
+
     const onFocusIn = (e: FocusEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA') {
-        setKeyboardOpen(true);
+      if (tag !== 'INPUT' && tag !== 'TEXTAREA') return;
+      setKeyboardOpen(true);
+
+      // On iOS: freeze container at current height so it doesn't jump
+      if (containerRef.current) {
+        containerRef.current.style.height = `${initialHeight}px`;
+        containerRef.current.style.position = 'fixed';
+        containerRef.current.style.top = '0';
+        containerRef.current.style.left = '0';
+        containerRef.current.style.right = '0';
       }
     };
+
     const onFocusOut = () => {
       setKeyboardOpen(false);
+      // Restore normal layout
+      if (containerRef.current) {
+        containerRef.current.style.height = '';
+        containerRef.current.style.position = '';
+        containerRef.current.style.top = '';
+        containerRef.current.style.left = '';
+        containerRef.current.style.right = '';
+      }
     };
 
     document.addEventListener('focusin', onFocusIn);
@@ -54,9 +75,12 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const hideNav = isChat && keyboardOpen;
 
   return (
-    <div className="flex flex-col bg-[#0b0416] text-white font-sans overflow-hidden" style={{ height: '100dvh' }}>
-
-      {/* Top bar — hidden in chat (chat has its own header) */}
+    <div
+      ref={containerRef}
+      className="flex flex-col bg-[#0b0416] text-white font-sans overflow-hidden"
+      style={{ height: '100svh' }}
+    >
+      {/* Top bar — hidden in chat */}
       {!isChat && (
         <header className="shrink-0 z-20 bg-[#0b0416]">
           <button
@@ -90,7 +114,9 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       {/* Main Content */}
       <main className={cn(
         'min-h-0',
-        isChat ? 'flex-1 flex flex-col overflow-hidden' : 'flex-1 overflow-y-auto custom-scrollbar'
+        isChat
+          ? 'flex-1 flex flex-col overflow-hidden'
+          : 'flex-1 overflow-y-auto custom-scrollbar'
       )}>
         <motion.div
           key={activeTab}
@@ -99,14 +125,16 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           className={cn(
             'max-w-4xl mx-auto w-full',
-            isChat ? 'flex-1 flex flex-col overflow-hidden px-4 pt-0 pb-0' : 'p-5 pb-28'
+            isChat
+              ? 'flex-1 flex flex-col overflow-hidden px-4'
+              : 'p-5 pb-28'
           )}
         >
           {children}
         </motion.div>
       </main>
 
-      {/* Bottom Navigation — hidden when keyboard is open in chat */}
+      {/* Bottom Navigation — hidden when keyboard open in chat */}
       {!hideNav && <BottomNav />}
     </div>
   );
