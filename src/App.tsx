@@ -12,6 +12,7 @@ import { Chat } from './components/Chat';
 import { Goals } from './components/Goals';
 import { CreateHub } from './components/CreateHub';
 import { Profile } from './components/Profile';
+import { LoadingScreen } from './components/LoadingScreen';
 import { LogIn, Sparkles } from 'lucide-react';
 
 export default function App() {
@@ -116,14 +117,7 @@ export default function App() {
   }
 
   if (!isAuthReady) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 bg-indigo-600 rounded-2xl animate-pulse" />
-          <p className="text-slate-400 font-medium animate-pulse">Запуск Liflu...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen isLoading={true} />;
   }
 
   if (!user) {
