@@ -105,6 +105,7 @@ service cloud.firestore {
       allow list: if isSignedIn();
       allow create: if isSignedIn() && isValidSpace(incoming()) && incoming().ownerId == request.auth.uid;
       allow update: if isSignedIn() && (isAdmin(spaceId));
+      allow delete: if isSignedIn() && existing().ownerId == request.auth.uid;
 
       match /members/{memberId} {
         allow read: if isMember(spaceId);
@@ -116,7 +117,8 @@ service cloud.firestore {
           // User adds themselves (e.g. accepting an invite) — memberId must match their uid
           (memberId == request.auth.uid && incoming().userId == request.auth.uid)
         );
-        allow update, delete: if isAdmin(spaceId);
+        allow update, delete: if isAdmin(spaceId) || 
+          get(/databases/$(database)/documents/spaces/$(spaceId)).data.ownerId == request.auth.uid;
       }
 
       match /tasks/{taskId} {

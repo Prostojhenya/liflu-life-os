@@ -404,35 +404,35 @@ export const SpaceSwitcher: React.FC<SpaceSwitcherProps> = ({ isOpen, onClose })
       return;
     }
 
-    if (space.type === 'personal') {
-      alert('Нельзя удалить личное пространство');
+    if (spaces.length <= 1) {
+      alert('Нельзя удалить единственное пространство');
       return;
     }
 
-    if (window.confirm(`Удалить пространство "${space.name}"? Это действие нельзя отменить.`)) {
-      try {
-        // Delete all members
-        const membersSnap = await getDocs(collection(db, `spaces/${spaceId}/members`));
-        for (const memberDoc of membersSnap.docs) {
-          await deleteDoc(memberDoc.ref);
-        }
+    if (!window.confirm(`Удалить пространство "${space.name}"? Это действие нельзя отменить.`)) return;
 
-        // Delete the space
-        await deleteDoc(doc(db, 'spaces', spaceId));
-
-        // If this was the current space, switch to another
-        if (user?.currentSpaceId === spaceId) {
-          const otherSpace = spaces.find(s => s.id !== spaceId);
-          if (otherSpace) {
-            await switchSpace(otherSpace.id);
-          }
-        }
-
-        alert('Пространство удалено');
-      } catch (error) {
-        console.error('Error deleting space:', error);
-        alert('Ошибка при удалении пространства');
+    try {
+      // Delete all members
+      const membersSnap = await getDocs(collection(db, `spaces/${spaceId}/members`));
+      for (const memberDoc of membersSnap.docs) {
+        await deleteDoc(memberDoc.ref);
       }
+
+      // Delete the space
+      await deleteDoc(doc(db, 'spaces', spaceId));
+
+      // If this was the current space, switch to another
+      if (user?.currentSpaceId === spaceId) {
+        const otherSpace = spaces.find(s => s.id !== spaceId);
+        if (otherSpace) {
+          await switchSpace(otherSpace.id);
+        }
+      }
+
+      setManagingSpaceId(null);
+    } catch (error) {
+      console.error('Error deleting space:', error);
+      alert('Ошибка при удалении пространства: ' + (error instanceof Error ? error.message : String(error)));
     }
   };
 
@@ -719,12 +719,22 @@ export const SpaceSwitcher: React.FC<SpaceSwitcherProps> = ({ isOpen, onClose })
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                console.log('Opening management for space:', space.id);
                                 setManagingSpaceId(space.id);
                               }}
-                              className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-[#8b7ca8] hover:bg-white/10 transition-colors"
+                              className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-[#8b7ca8] hover:bg-white/10 transition-colors flex-shrink-0"
                             >
-                              <Settings size={18} />
+                              <Settings size={16} />
+                            </button>
+                          )}
+                          {isOwner && !isActive && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteSpace(space.id);
+                              }}
+                              className="w-9 h-9 rounded-xl bg-red-500/10 flex items-center justify-center text-red-400 hover:bg-red-500/20 transition-colors flex-shrink-0"
+                            >
+                              <Trash2 size={16} />
                             </button>
                           )}
                         </div>
