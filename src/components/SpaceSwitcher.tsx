@@ -144,12 +144,24 @@ export const SpaceSwitcher: React.FC<SpaceSwitcherProps> = ({ isOpen, onClose })
   const switchSpace = async (spaceId: string) => {
     if (!user) return;
     
-    setUser({
-      ...user,
-      currentSpaceId: spaceId
-    });
-    
-    onClose();
+    try {
+      // Update user's current space in Firestore
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, {
+        currentSpaceId: spaceId
+      });
+
+      // Update local state
+      setUser({
+        ...user,
+        currentSpaceId: spaceId
+      });
+      
+      onClose();
+    } catch (error) {
+      console.error('Error switching space:', error);
+      alert('Ошибка при переключении пространства');
+    }
   };
 
   const createSpace = async () => {
@@ -282,6 +294,45 @@ export const SpaceSwitcher: React.FC<SpaceSwitcherProps> = ({ isOpen, onClose })
     if (space.ownerId === user?.uid) return true;
     const member = members.find(m => m.userId === user?.uid);
     return member?.role === 'admin';
+  };
+
+  const deleteSpace = async (spaceId: string) => {
+    const space = spaces.find(s => s.id === spaceId);
+    if (!space || space.ownerId !== user?.uid) {
+      alert('Только владелец может удалить пространство');
+      return;
+    }
+
+    if (space.type === 'personal') {
+      alert('Нельзя удалить личное пространство');
+      return;
+    }
+
+    if (window.confirm(`Удалить пространство "${space.name}"? Это действие нельзя отменить.`)) {
+      try {
+        // Delete all members
+        const membersSnap = await getDocs(collection(db, `spaces/${spaceId}/members`));
+        for (const memberDoc of membersSnap.docs) {
+          await deleteDoc(memberDoc.ref);
+        }
+
+        // Delete the space
+        await deleteDoc(doc(db, 'spaces', spaceId));
+
+        // If this was the current space, switch to another
+        if (user?.currentSpaceId === spaceId) {
+          const otherSpace = spaces.find(s => s.id !== spaceId);
+          if (otherSpace) {
+            await switchSpace(otherSpace.id);
+          }
+        }
+
+        alert('Пространство удалено');
+      } catch (error) {
+        console.error('Error deleting space:', error);
+        alert('Ошибка при удалении пространства');
+      }
+    }
   };
 
   return (
@@ -443,6 +494,22 @@ export const SpaceSwitcher: React.FC<SpaceSwitcherProps> = ({ isOpen, onClose })
                     </div>
                   </div>
                 )}
+
+                {/* Delete Space Button - Only for owner of shared spaces */}
+                {managingSpaceId && (() => {
+                  const space = spaces.find(s => s.id === managingSpaceId);
+                  return space && space.ownerId === user?.uid && space.type === 'shared' && (
+                    <div className="pt-4 border-t border-white/10">
+                      <button
+                        onClick={() => deleteSpace(managingSpaceId)}
+                        className="w-full py-3 rounded-xl bg-accent-red/10 border border-accent-red/20 text-accent-red font-bold text-sm uppercase flex items-center justify-center gap-2 hover:bg-accent-red/20 transition-all"
+                      >
+                        <Trash2 size={16} />
+                        Удалить пространство
+                      </button>
+                    </div>
+                  );
+                })()}
               </div>
             ) : (
               <>
