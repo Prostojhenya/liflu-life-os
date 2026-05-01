@@ -30,19 +30,24 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     loadSpace();
   }, [user?.currentSpaceId]);
 
-  // Detect virtual keyboard via visualViewport
+  // Detect virtual keyboard — works on iOS and Android
   useEffect(() => {
-    if (!window.visualViewport) return;
-
-    const onResize = () => {
-      const viewportHeight = window.visualViewport!.height;
-      const windowHeight = window.innerHeight;
-      // Keyboard is open if viewport is significantly smaller than window
-      setKeyboardOpen(windowHeight - viewportHeight > 100);
+    const onFocusIn = (e: FocusEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') {
+        setKeyboardOpen(true);
+      }
+    };
+    const onFocusOut = () => {
+      setKeyboardOpen(false);
     };
 
-    window.visualViewport.addEventListener('resize', onResize);
-    return () => window.visualViewport!.removeEventListener('resize', onResize);
+    document.addEventListener('focusin', onFocusIn);
+    document.addEventListener('focusout', onFocusOut);
+    return () => {
+      document.removeEventListener('focusin', onFocusIn);
+      document.removeEventListener('focusout', onFocusOut);
+    };
   }, []);
 
   const isChat = activeTab === 'chat';
