@@ -25,22 +25,16 @@ export default defineConfig(({mode}) => {
           scope: '/',
           icons: [
             {
-              src: '/img/icon.png?v=2',
+              src: '/img/app-icon.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any maskable'
             },
             {
-              src: '/img/icon.png?v=2',
+              src: '/img/app-icon.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'any'
-            },
-            {
-              src: '/img/icon.png?v=2',
-              sizes: '180x180',
-              type: 'image/png',
-              purpose: 'apple touch icon'
             }
           ]
         }
