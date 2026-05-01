@@ -178,12 +178,14 @@ service cloud.firestore {
       );
       // List invites for current user's email
       allow list: if isSignedIn() && request.query.limit <= 50;
-      // Admins can create invites
+      // Space owners and admins can create invites
       allow create: if isSignedIn() && 
         incoming().keys().hasAll(['spaceId', 'spaceName', 'email', 'invitedBy', 'status', 'createdAt']) &&
         incoming().invitedBy == request.auth.uid &&
         incoming().status == 'pending' &&
-        isAdmin(incoming().spaceId);
+        (get(/databases/$(database)/documents/spaces/$(incoming().spaceId)).data.ownerId == request.auth.uid ||
+         (exists(/databases/$(database)/documents/spaces/$(incoming().spaceId)/members/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/spaces/$(incoming().spaceId)/members/$(request.auth.uid)).data.role == 'admin'));
       // Users can update their own invites (accept/reject)
       allow update: if isSignedIn() && 
         existing().email == request.auth.token.email &&

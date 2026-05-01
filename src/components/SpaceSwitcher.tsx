@@ -559,7 +559,7 @@ export const SpaceSwitcher: React.FC<SpaceSwitcherProps> = ({ isOpen, onClose })
                               <div className="w-2 h-2 rounded-full bg-accent-purple" />
                             )}
                           </button>
-                          {space.type === 'shared' && (isOwner || canManageSpace(space)) && (
+                          {space.type === 'shared' && isOwner && (
                             <button
                               onClick={() => setManagingSpaceId(space.id)}
                               className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-[#8b7ca8] hover:bg-white/10 transition-colors"
