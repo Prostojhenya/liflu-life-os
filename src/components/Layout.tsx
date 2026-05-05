@@ -4,15 +4,27 @@ import { cn } from '@/lib/utils';
 import { motion } from 'motion/react';
 import { BottomNav } from './BottomNav';
 import { SpaceSwitcher } from './SpaceSwitcher';
+import { BurgerMenu } from './BurgerMenu';
 import { db } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import { ChevronDown, Users, Lock, ArrowLeft } from 'lucide-react';
+import { Menu, ArrowLeft, Users } from 'lucide-react';
 import { useChatHeader } from '@/store/chatHeaderContext';
+
+const TAB_TITLES: Record<string, string> = {
+  dashboard: 'Сегодня',
+  tasks:     'Задачи',
+  habits:    'Привычки',
+  goals:     'Цели',
+  shopping:  'Покупки',
+  chat:      'Чат',
+  profile:   'Профиль',
+};
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { activeTab, user } = useStore();
   const { chatHeader } = useChatHeader();
   const [isSpaceSwitcherOpen, setIsSpaceSwitcherOpen] = useState(false);
+  const [isBurgerOpen, setIsBurgerOpen] = useState(false);
   const [currentSpace, setCurrentSpace] = useState<{ name: string; type: 'personal' | 'shared' } | null>(null);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
 
@@ -52,10 +64,10 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   return (
     <div className="flex flex-col bg-[#0b0416] text-white font-sans overflow-hidden" style={{ height: '100dvh' }}>
 
-      {/* Top bar — space switcher OR chat header */}
+      {/* ── Top bar ── */}
       <header className="shrink-0 z-20 bg-[#0b0416]">
         {isChat && chatHeader ? (
-          // Chat header — stays fixed at top, never moves
+          // Chat conversation header
           <div className="bg-[#150a24] border-b border-white/10 px-4 py-3 flex items-center gap-3">
             <button
               onClick={() => chatHeader.onBack?.()}
@@ -75,37 +87,48 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               <p className="text-[9px] text-[#8b7ca8] font-display">{chatHeader.subtitle}</p>
             </div>
           </div>
-        ) : isChat ? (
-          // Chat list header
-          <div className="bg-[#150a24] border-b border-white/10 px-5 py-3.5 flex items-center justify-between">
-            <p className="text-xs font-black text-white uppercase font-display">Чаты</p>
-          </div>
         ) : (
-          // Space switcher
-          <button
-            onClick={() => setIsSpaceSwitcherOpen(true)}
-            className="w-full bg-[#150a24] border-b border-white/10 px-5 py-3.5 flex items-center gap-3 active:bg-white/5 transition-colors"
-          >
-            <div className="w-8 h-8 bg-accent-purple/20 rounded-full flex items-center justify-center flex-shrink-0">
-              {currentSpace?.type === 'shared'
-                ? <Users size={16} className="text-accent-purple" />
-                : <Lock size={16} className="text-accent-purple" />
-              }
-            </div>
-            <div className="text-left flex-1 min-w-0">
-              <p className="text-xs font-black text-white uppercase font-display truncate">
-                {currentSpace?.name || 'Personal Space'}
+          // Default header with burger
+          <div className="bg-[#0b0416] border-b border-white/5 px-4 py-3 flex items-center gap-3">
+            <button
+              onClick={() => setIsBurgerOpen(true)}
+              className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-[#8b7ca8] flex-shrink-0 active:bg-white/10 transition-colors"
+            >
+              <Menu size={18} />
+            </button>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-black text-white uppercase font-display">
+                {TAB_TITLES[activeTab] ?? activeTab}
               </p>
-              <p className="text-[9px] text-[#8b7ca8] font-display">
-                {currentSpace?.type === 'shared' ? 'Групповое пространство' : 'Личное пространство'}
-              </p>
+              {currentSpace && (
+                <p className="text-[9px] text-[#8b7ca8] font-display truncate">{currentSpace.name}</p>
+              )}
             </div>
-            <ChevronDown size={16} className="text-[#8b7ca8] flex-shrink-0" />
-          </button>
+            {/* Avatar shortcut */}
+            <button
+              onClick={() => setIsBurgerOpen(true)}
+              className="w-8 h-8 rounded-full overflow-hidden border border-white/10 flex-shrink-0"
+            >
+              <img
+                src={user?.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.uid}`}
+                alt="avatar"
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+            </button>
+          </div>
         )}
       </header>
 
       <SpaceSwitcher isOpen={isSpaceSwitcherOpen} onClose={() => setIsSpaceSwitcherOpen(false)} />
+
+      <BurgerMenu
+        isOpen={isBurgerOpen}
+        onClose={() => setIsBurgerOpen(false)}
+        spaceName={currentSpace?.name || 'Personal Space'}
+        spaceType={currentSpace?.type || 'personal'}
+        onSpaceSwitch={() => setIsSpaceSwitcherOpen(true)}
+      />
 
       {/* Main Content */}
       <main className={cn(
