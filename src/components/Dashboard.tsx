@@ -419,6 +419,11 @@ export const Dashboard: React.FC = () => {
           <div className="flex items-center gap-2 px-4 pt-4 pb-3">
             <Flame size={16} className="text-accent-purple" />
             <span className="text-sm font-black text-white uppercase tracking-wider font-display flex-1">Привычки</span>
+            {habits.length > 0 && (
+              <span className="text-[10px] text-[#8b7ca8] font-display">
+                {habits.filter(h => iCompletedToday(h)).length}/{habits.length}
+              </span>
+            )}
           </div>
 
           {habits.length === 0 ? (
@@ -488,6 +493,9 @@ export const Dashboard: React.FC = () => {
             <span className="text-sm font-black text-white uppercase tracking-wider font-display flex-1">
               {isToday ? 'Сегодняшние события' : 'События'}
             </span>
+            {events.length > 0 && (
+              <span className="text-[10px] text-[#8b7ca8] font-display">{events.length}</span>
+            )}
           </div>
 
           {events.length === 0 ? (
