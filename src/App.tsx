@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { auth, db, signInWithGoogle, handleFirestoreError, OperationType } from './firebase';
+import { auth, db, signInWithGoogle, handleFirestoreError, OperationType, initMessaging } from './firebase';
+import { requestNotificationPermission } from './components/NotificationCenter';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useStore, calculateLevel, INITIAL_STATS } from './store/useStore';
@@ -12,6 +13,7 @@ import { Chat } from './components/Chat';
 import { Goals } from './components/Goals';
 import { Profile } from './components/Profile';
 import { LoadingScreen } from './components/LoadingScreen';
+import { Sparkles, LogIn } from 'lucide-react';
 import { ChatHeaderProvider } from './store/chatHeaderContext';
 
 export default function App() {
@@ -132,6 +134,11 @@ export default function App() {
                 stats: userData.stats || INITIAL_STATS,
                 level: calculateLevel(userData.totalXP || 0)
               } as any);
+              
+              // Initialize messaging for push notifications
+              initMessaging().then(() => {
+                requestNotificationPermission();
+              });
             } catch (error) {
               console.error("Auth initialization error:", error);
               setError("Ошибка инициализации пользователя");

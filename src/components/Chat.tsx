@@ -74,8 +74,8 @@ export const Chat: React.FC = () => {
       const title = otherProfile?.displayName || (
         activeConv.type === 'group'
           ? Object.values(activeConv.participantProfiles || {})
-              .filter(p => p.uid !== user?.uid)
-              .map(p => p.displayName)
+              .filter((p: any) => p.uid !== user?.uid)
+              .map((p: any) => p.displayName)
               .join(', ')
           : 'Чат'
       );
@@ -425,8 +425,8 @@ export const Chat: React.FC = () => {
     const convTitle = otherProfile?.displayName || (
       activeConv.type === 'group'
         ? Object.values(activeConv.participantProfiles || {})
-            .filter(p => p.uid !== user.uid)
-            .map(p => p.displayName)
+            .filter((p: any) => p.uid !== user.uid)
+            .map((p: any) => p.displayName)
             .join(', ')
         : 'Чат'
     );

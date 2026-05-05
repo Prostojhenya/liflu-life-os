@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { getMessaging, getToken, onMessage, isSupported } from 'firebase/messaging';
 import firebaseConfig from '../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
@@ -9,6 +10,46 @@ export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
 export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);
+
+// Messaging setup
+let messagingInstance: ReturnType<typeof getMessaging> | null = null;
+
+export const initMessaging = async () => {
+  try {
+    const supported = await isSupported();
+    if (!supported) {
+      console.log('Firebase Messaging not supported in this browser');
+      return null;
+    }
+    messagingInstance = getMessaging(app);
+    return messagingInstance;
+  } catch (e) {
+    console.log('Messaging init error:', e);
+    return null;
+  }
+};
+
+export const getFCMToken = async (): Promise<string | null> => {
+  if (!messagingInstance) {
+    await initMessaging();
+  }
+  if (!messagingInstance) return null;
+  
+  try {
+    const token = await getToken(messagingInstance, {
+      vapidKey: (import.meta as any).env?.VITE_FIREBASE_VAPID_KEY || ''
+    });
+    return token;
+  } catch (e) {
+    console.error('Error getting FCM token:', e);
+    return null;
+  }
+};
+
+export const onMessageListener = (callback: (payload: any) => void) => {
+  if (!messagingInstance) return () => {};
+  return onMessage(messagingInstance, callback);
+};
 
 export enum OperationType {
   CREATE = 'create',

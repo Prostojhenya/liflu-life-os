@@ -2,23 +2,50 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content" />
+    <!-- PWA Meta Tags for iOS Safari -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Liflu" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="theme-color" content="#150a24" />
-    <!-- Safari PWA icon -->
+    <meta name="theme-color" content="#0b0416" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="msapplication-TileColor" content="#0b0416" />
+    
+    <!-- iOS Splash Screens -->
     <link rel="apple-touch-icon" href="/img/liflu-icon.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/img/liflu-icon.png" />
     <link rel="apple-touch-icon" sizes="152x152" href="/img/liflu-icon.png" />
     <link rel="apple-touch-icon" sizes="120x120" href="/img/liflu-icon.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/img/liflu-icon.png" />
+    
+    <!-- iOS Launch Screen - prevents black screen -->
+    <link rel="apple-touch-startup-image" href="/img/liflu-icon.png" />
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    
     <title>Liflu - Life OS</title>
+    
+    <!-- Prevent white flash on iOS -->
+    <style>
+      html, body {
+        background-color: #0b0416;
+        margin: 0;
+        padding: 0;
+        -webkit-tap-highlight-color: transparent;
+      }
+      #root {
+        min-height: 100vh;
+        background-color: #0b0416;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
+      // Lock orientation to portrait
       if (screen.orientation && screen.orientation.lock) {
         screen.orientation.lock('portrait-primary').catch(() => {});
       }

@@ -3,8 +3,9 @@ import { motion, AnimatePresence } from 'motion/react';
 import { db } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useStore, XP_VALUES } from '@/store/useStore';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, Bell } from 'lucide-react';
 import type { AddType } from './AddSheet';
+import { createTaskReminder, createHabitReminder } from '@/lib/notifications';
 
 interface Props {
   type: AddType | null;
@@ -31,6 +32,7 @@ export const QuickAddModal: React.FC<Props> = ({ type, onClose }) => {
   const { user, selectedDate } = useStore();
   const [value, setValue] = useState('');
   const [eventTime, setEventTime] = useState('');
+  const [enableReminder, setEnableReminder] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -58,7 +60,7 @@ export const QuickAddModal: React.FC<Props> = ({ type, onClose }) => {
       const dateStr = `${taskDate.getFullYear()}-${String(taskDate.getMonth() + 1).padStart(2, '0')}-${String(taskDate.getDate()).padStart(2, '0')}`;
 
       if (type === 'task' || type === 'event') {
-        await addDoc(collection(db, `spaces/${user.currentSpaceId}/tasks`), {
+        const docRef = await addDoc(collection(db, `spaces/${user.currentSpaceId}/tasks`), {
           title: value.trim(),
           type: cfg.isEvent ? 'event' : 'task',
           eventTime: cfg.isEvent ? (eventTime || null) : null,
@@ -70,8 +72,13 @@ export const QuickAddModal: React.FC<Props> = ({ type, onClose }) => {
           scheduledDate: dateStr,
           createdAt: serverTimestamp(),
         });
+        
+        // Create task reminder notification
+        if (type === 'task' && enableReminder && user.uid) {
+          await createTaskReminder(user.uid, docRef.id, value.trim(), dateStr);
+        }
       } else if (type === 'habit') {
-        await addDoc(collection(db, `spaces/${user.currentSpaceId}/habits`), {
+        const docRef = await addDoc(collection(db, `spaces/${user.currentSpaceId}/habits`), {
           title: value.trim(),
           statType: 'vitality',
           frequency: 'daily',
@@ -80,6 +87,11 @@ export const QuickAddModal: React.FC<Props> = ({ type, onClose }) => {
           spaceId: user.currentSpaceId,
           createdAt: serverTimestamp(),
         });
+        
+        // Create habit reminder notification
+        if (enableReminder && user.uid) {
+          await createHabitReminder(user.uid, docRef.id, value.trim());
+        }
       } else if (type === 'goal') {
         await addDoc(collection(db, `spaces/${user.currentSpaceId}/goals`), {
           title: value.trim(),
@@ -190,6 +202,22 @@ export const QuickAddModal: React.FC<Props> = ({ type, onClose }) => {
                   placeholder={cfg.placeholder}
                   className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-sm text-white placeholder:text-[#8b7ca8]/50 font-display focus:outline-none focus:border-white/20 transition-all"
                 />
+
+                {/* Reminder toggle for tasks and habits */}
+                {(type === 'task' || type === 'habit') && (
+                  <button
+                    onClick={() => setEnableReminder(!enableReminder)}
+                    className="w-full flex items-center justify-between bg-white/5 border border-white/10 rounded-2xl px-4 py-3 transition-all hover:bg-white/10"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Bell size={16} className={enableReminder ? 'text-accent-purple' : 'text-[#8b7ca8]'} />
+                      <span className="text-sm text-white font-display">Напоминание</span>
+                    </div>
+                    <div className={`w-10 h-6 rounded-full transition-all ${enableReminder ? 'bg-accent-purple' : 'bg-white/10'}`}>
+                      <div className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform ${enableReminder ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                    </div>
+                  </button>
+                )}
 
                 {/* Save button */}
                 <button

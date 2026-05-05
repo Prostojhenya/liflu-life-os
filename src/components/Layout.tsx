@@ -8,9 +8,10 @@ import { BurgerMenu } from './BurgerMenu';
 import { AddType } from './AddSheet';
 import { QuickAddModal } from './QuickAddModal';
 import { LifluAvatar } from './LifluAvatar';
-import { db } from '@/firebase';
+import { NotificationCenter, requestNotificationPermission } from './NotificationCenter';
+import { db, initMessaging } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import { Menu, ArrowLeft, Users, Search, Bell, Flame } from 'lucide-react';
+import { Menu, ArrowLeft, Users, Search, Flame } from 'lucide-react';
 import { useChatHeader } from '@/store/chatHeaderContext';
 
 const TAB_TITLES: Record<string, string> = {
@@ -157,12 +158,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               <button className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-[#8b7ca8] active:bg-white/10 transition-colors">
                 <Search size={17} />
               </button>
-              <button className="relative w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-[#8b7ca8] active:bg-white/10 transition-colors">
-                <Bell size={17} />
-                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-accent-purple rounded-full text-[10px] font-black text-white flex items-center justify-center leading-none">
-                  3
-                </span>
-              </button>
+              <NotificationCenter />
             </div>
           </div>
         )}
