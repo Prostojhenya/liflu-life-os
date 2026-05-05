@@ -5,7 +5,8 @@ import { motion } from 'motion/react';
 import { BottomNav } from './BottomNav';
 import { SpaceSwitcher } from './SpaceSwitcher';
 import { BurgerMenu } from './BurgerMenu';
-import { AddSheet, AddType } from './AddSheet';
+import { AddType } from './AddSheet';
+import { QuickAddModal } from './QuickAddModal';
 import { db } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { Menu, ArrowLeft, Users, Search, Bell } from 'lucide-react';
@@ -132,7 +133,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         onQuickAdd={(type) => { setIsBurgerOpen(false); setTimeout(() => setQuickAddType(type), 300); }}
       />
 
-      <AddSheet type={quickAddType} onClose={() => setQuickAddType(null)} />
+      <QuickAddModal type={quickAddType} onClose={() => setQuickAddType(null)} />
 
       {/* Main Content */}
       <main className={cn(
