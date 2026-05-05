@@ -316,9 +316,6 @@ export const Dashboard: React.FC = () => {
             <div className="text-[10px] text-[#8b7ca8] font-black uppercase tracking-wider font-display mb-1">
               {xpToNextLevel - user.totalXP} XP до Level {user.level + 1}
             </div>
-            {totalCount > 0 && (
-              <div className="text-xs font-black text-white font-display">{completedCount}/{totalCount} задач</div>
-            )}
           </div>
         </div>
         <div className="status-bar-bg h-1.5">
