@@ -14,7 +14,7 @@ import {
   collection, getDocs, doc, getDoc, addDoc, updateDoc,
   deleteDoc, serverTimestamp, query, where
 } from 'firebase/firestore';
-import { AddSheet, AddType } from './AddSheet';
+import { AddType } from './AddSheet';
 
 interface Space {
   id: string;
@@ -27,6 +27,7 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   onSpaceSwitch: () => void;
+  onQuickAdd: (type: AddType) => void;
 }
 
 const SECTIONS = [
@@ -46,11 +47,9 @@ const QUICK_ACTIONS: { type: AddType; label: string; icon: React.ElementType; co
   { type: 'task',     label: 'Событие',  icon: CalendarDays, color: '#ec4899' },
 ];
 
-export const BurgerMenu: React.FC<Props> = ({ isOpen, onClose, onSpaceSwitch }) => {
+export const BurgerMenu: React.FC<Props> = ({ isOpen, onClose, onSpaceSwitch, onQuickAdd }) => {
   const { user, setUser, setActiveTab, activeTab } = useStore();
   const [spaces, setSpaces] = useState<Space[]>([]);
-  const [addSheetType, setAddSheetType] = useState<AddType | null>(null);
-  const [addSheetIsEvent, setAddSheetIsEvent] = useState(false);
 
   // Space context menu
   const [contextSpace, setContextSpace] = useState<Space | null>(null);
@@ -241,14 +240,8 @@ export const BurgerMenu: React.FC<Props> = ({ isOpen, onClose, onSpaceSwitch }) 
                     <button
                       key={i}
                       onClick={() => {
-                        if (label === 'Событие') {
-                          setAddSheetIsEvent(true);
-                          setAddSheetType('task');
-                        } else {
-                          setAddSheetIsEvent(false);
-                          setAddSheetType(type);
-                        }
                         onClose();
+                        onQuickAdd(type);
                       }}
                       className="flex flex-col items-center gap-1.5 flex-1"
                     >
@@ -431,8 +424,6 @@ export const BurgerMenu: React.FC<Props> = ({ isOpen, onClose, onSpaceSwitch }) 
         )}
       </AnimatePresence>
 
-      {/* Quick action sheet */}
-      <AddSheet type={addSheetType} onClose={() => { setAddSheetType(null); setAddSheetIsEvent(false); }} />
     </>
   );
 };

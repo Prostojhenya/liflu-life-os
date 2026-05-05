@@ -5,6 +5,7 @@ import { motion } from 'motion/react';
 import { BottomNav } from './BottomNav';
 import { SpaceSwitcher } from './SpaceSwitcher';
 import { BurgerMenu } from './BurgerMenu';
+import { AddSheet, AddType } from './AddSheet';
 import { db } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { Menu, ArrowLeft, Users, Search, Bell } from 'lucide-react';
@@ -25,6 +26,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const { chatHeader } = useChatHeader();
   const [isSpaceSwitcherOpen, setIsSpaceSwitcherOpen] = useState(false);
   const [isBurgerOpen, setIsBurgerOpen] = useState(false);
+  const [quickAddType, setQuickAddType] = useState<AddType | null>(null);
   const [currentSpace, setCurrentSpace] = useState<{ name: string; type: 'personal' | 'shared' } | null>(null);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
 
@@ -127,7 +129,10 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         isOpen={isBurgerOpen}
         onClose={() => setIsBurgerOpen(false)}
         onSpaceSwitch={() => setIsSpaceSwitcherOpen(true)}
+        onQuickAdd={(type) => { setIsBurgerOpen(false); setTimeout(() => setQuickAddType(type), 300); }}
       />
+
+      <AddSheet type={quickAddType} onClose={() => setQuickAddType(null)} />
 
       {/* Main Content */}
       <main className={cn(
