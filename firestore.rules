@@ -115,6 +115,26 @@ service cloud.firestore {
     }
 
     // ===============================================================
+    // Notifications
+    // ===============================================================
+    match /users/{userId}/notifications/{notificationId} {
+      allow read:   if isSignedIn() && userId == uid();
+      allow create: if isSignedIn() && userId == uid();
+      allow update: if isSignedIn() && userId == uid();
+      allow delete: if isSignedIn() && userId == uid();
+    }
+
+    // ===============================================================
+    // Scheduled Notifications
+    // ===============================================================
+    match /users/{userId}/scheduledNotifications/{notificationId} {
+      allow read:   if isSignedIn() && userId == uid();
+      allow create: if isSignedIn() && userId == uid();
+      allow update: if isSignedIn() && userId == uid();
+      allow delete: if isSignedIn() && userId == uid();
+    }
+
+    // ===============================================================
     // Invite Links
     // ===============================================================
     match /inviteLinks/{tokenId} {
