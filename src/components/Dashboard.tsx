@@ -26,14 +26,13 @@ const STAT_COLORS = {
 };
 
 export const Dashboard: React.FC = () => {
-  const { user, setUser } = useStore();
+  const { user, setUser, selectedDate, setSelectedDate } = useStore();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('active');
   const [isExpanded, setIsExpanded] = useState(false);
   const [visibleMonth, setVisibleMonth] = useState('');
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const calendarRef = useRef<HTMLDivElement>(null);
 
   // Scroll to today on mount — instant, no animation

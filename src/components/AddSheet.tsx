@@ -20,7 +20,7 @@ const CONFIG: Record<AddType, { title: string; placeholder: string; emoji: strin
 };
 
 export const AddSheet: React.FC<Props> = ({ type, onClose }) => {
-  const { user } = useStore();
+  const { user, selectedDate } = useStore();
   const [value, setValue] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -38,7 +38,9 @@ export const AddSheet: React.FC<Props> = ({ type, onClose }) => {
     setIsSaving(true);
     try {
       const today = new Date();
-      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      // For tasks use the selected date from the calendar; for others use today
+      const taskDate = type === 'task' ? selectedDate : today;
+      const dateStr = `${taskDate.getFullYear()}-${String(taskDate.getMonth() + 1).padStart(2, '0')}-${String(taskDate.getDate()).padStart(2, '0')}`;
 
       if (type === 'task') {
         await addDoc(collection(db, `spaces/${user.currentSpaceId}/tasks`), {
@@ -125,9 +127,16 @@ export const AddSheet: React.FC<Props> = ({ type, onClose }) => {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <span className="text-xl">{cfg.emoji}</span>
-                <span className="text-sm font-black text-white uppercase tracking-wider font-display">
-                  {cfg.title}
-                </span>
+                <div>
+                  <span className="text-sm font-black text-white uppercase tracking-wider font-display">
+                    {cfg.title}
+                  </span>
+                  {type === 'task' && (
+                    <p className="text-[10px] text-[#8b7ca8] font-display mt-0.5">
+                      {selectedDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
+                    </p>
+                  )}
+                </div>
               </div>
               <button
                 onPointerDown={onClose}
