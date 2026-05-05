@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useStore, STAT_LABELS } from '@/store/useStore';
 import { auth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Settings, LogOut, TrendingUp, Calendar } from 'lucide-react';
 import { motion } from 'motion/react';
+import { LifluAvatar, AvatarEditor } from './LifluAvatar';
 
 const STAT_COLORS = {
   strength: '#ef4444',
@@ -23,6 +24,7 @@ const STAT_ICONS = {
 
 export const Profile: React.FC = () => {
   const { user, setUser } = useStore();
+  const [avatarEditorOpen, setAvatarEditorOpen] = useState(false);
 
   const handleSignOut = async () => {
     try {
@@ -108,34 +110,23 @@ export const Profile: React.FC = () => {
           <div className="relative flex items-start gap-3.5">
             {/* Avatar */}
             <div className="relative flex-shrink-0">
-              <div 
-                className="w-[68px] h-[68px] rounded-full flex items-center justify-center text-[28px] border-[2.5px]"
-                style={{
-                  background: 'linear-gradient(135deg, #1e1b4b, #312e81)',
-                  borderColor: '#7c5af0',
-                  boxShadow: '0 0 20px rgba(124,90,240,0.3)'
-                }}
+              <button
+                onClick={() => setAvatarEditorOpen(true)}
+                className="block rounded-full overflow-hidden"
+                style={{ width: 68, height: 68, border: '2.5px solid #7c5af0', boxShadow: '0 0 20px rgba(124,90,240,0.3)' }}
               >
-                {user.photoURL ? (
-                  <img
-                    src={user.photoURL}
-                    alt="Profile"
-                    className="w-full h-full rounded-full object-cover"
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  '🧑'
-                )}
-              </div>
-              <div 
-                className="absolute bottom-0 right-0 w-[22px] h-[22px] rounded-full flex items-center justify-center cursor-pointer border-2"
-                style={{ background: '#7c5af0', borderColor: 'var(--bg)' }}
+                <LifluAvatar seed={user.avatarSeed || user.uid} size={68} />
+              </button>
+              <button
+                onClick={() => setAvatarEditorOpen(true)}
+                className="absolute bottom-0 right-0 w-[22px] h-[22px] rounded-full flex items-center justify-center border-2"
+                style={{ background: '#7c5af0', borderColor: '#0b0416' }}
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                 </svg>
-              </div>
+              </button>
             </div>
 
             {/* Info */}
@@ -493,6 +484,8 @@ export const Profile: React.FC = () => {
           Выйти из аккаунта
         </motion.button>
       </div>
+
+      <AvatarEditor isOpen={avatarEditorOpen} onClose={() => setAvatarEditorOpen(false)} />
     </div>
   );
 };

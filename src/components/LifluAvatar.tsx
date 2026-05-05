@@ -319,3 +319,122 @@ export const AvatarPicker: React.FC<{
     </div>
   );
 };
+
+/* ─── Avatar Editor (full picker with save) ─────────────────────────── */
+import { useState as _useState } from 'react';
+import { db } from '@/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
+import { useStore as _useStore } from '@/store/useStore';
+import { motion as _motion, AnimatePresence as _AnimatePresence } from 'motion/react';
+import { X as _X, Check as _Check, Shuffle as _Shuffle } from 'lucide-react';
+
+export const AvatarEditor: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+}> = ({ isOpen, onClose }) => {
+  const { user, setUser } = _useStore();
+  const [selectedSeed, setSelectedSeed] = _useState(user?.avatarSeed || user?.uid || '');
+  const [isSaving, setIsSaving] = _useState(false);
+
+  // 20 preset seeds + random variants
+  const presets = [
+    ...Array.from({ length: 16 }, (_, i) => `liflu-preset-${i}`),
+    user?.uid || 'default',
+    `${user?.uid}-alt1`,
+    `${user?.uid}-alt2`,
+    `${user?.uid}-alt3`,
+  ];
+
+  const randomize = () => {
+    const rand = `custom-${Math.random().toString(36).slice(2, 10)}`;
+    setSelectedSeed(rand);
+  };
+
+  const handleSave = async () => {
+    if (!user) return;
+    setIsSaving(true);
+    try {
+      await updateDoc(doc(db, 'users', user.uid), { avatarSeed: selectedSeed });
+      setUser({ ...user, avatarSeed: selectedSeed });
+      onClose();
+    } catch (e) { console.error(e); }
+    setIsSaving(false);
+  };
+
+  return (
+    <_AnimatePresence>
+      {isOpen && (
+        <>
+          <_motion.div
+            key="backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md"
+            onClick={onClose}
+          />
+          <_motion.div
+            key="modal"
+            initial={{ opacity: 0, scale: 0.92, y: 16 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.92, y: 16 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 bg-[#130926] border border-white/10 rounded-3xl p-5 shadow-2xl"
+            style={{ maxWidth: 420, margin: '0 auto' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm font-black text-white uppercase tracking-wider font-display">Выбери аватар</p>
+              <button onClick={onClose} className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-[#8b7ca8]">
+                <_X size={16} />
+              </button>
+            </div>
+
+            {/* Preview */}
+            <div className="flex justify-center mb-4">
+              <div className="relative">
+                <LifluAvatar seed={selectedSeed} size={80} />
+                <button
+                  onClick={randomize}
+                  className="absolute -bottom-1 -right-1 w-7 h-7 bg-accent-purple rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+                >
+                  <_Shuffle size={13} className="text-white" />
+                </button>
+              </div>
+            </div>
+
+            {/* Grid */}
+            <div className="grid grid-cols-5 gap-2 mb-4">
+              {presets.map(seed => (
+                <button
+                  key={seed}
+                  onClick={() => setSelectedSeed(seed)}
+                  className={`rounded-2xl overflow-hidden transition-all ${
+                    seed === selectedSeed
+                      ? 'ring-2 ring-accent-purple ring-offset-2 ring-offset-[#130926] scale-105'
+                      : 'opacity-60 hover:opacity-100'
+                  }`}
+                >
+                  <LifluAvatar seed={seed} size={52} />
+                </button>
+              ))}
+            </div>
+
+            {/* Save */}
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="w-full py-3 rounded-2xl bg-accent-purple text-white font-black uppercase tracking-wider font-display text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50"
+            >
+              {isSaving
+                ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                : <><_Check size={16} />Сохранить</>
+              }
+            </button>
+          </_motion.div>
+        </>
+      )}
+    </_AnimatePresence>
+  );
+};

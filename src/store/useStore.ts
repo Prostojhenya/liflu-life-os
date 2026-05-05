@@ -17,6 +17,7 @@ interface UserProfile {
   level: number;
   currentSpaceId: string | null;
   stats: UserStats;
+  avatarSeed?: string;
 }
 
 interface AppState {

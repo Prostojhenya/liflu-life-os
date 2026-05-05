@@ -108,7 +108,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                 onClick={() => setIsBurgerOpen(true)}
                 className="w-8 h-8 rounded-full overflow-hidden border border-white/10 flex-shrink-0"
               >
-                <LifluAvatar seed={user.uid} size={32} />
+                <LifluAvatar seed={user.avatarSeed || user.uid} size={32} />
               </button>
             )}
 

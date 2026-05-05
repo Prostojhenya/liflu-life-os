@@ -226,7 +226,7 @@ export const BurgerMenu: React.FC<Props> = ({ isOpen, onClose, onSpaceSwitch, on
                 <div className="flex items-center gap-4 mb-3">
                   <div className="level-circle w-16 h-16 flex-shrink-0">
                     <div className="level-circle-inner relative">
-                      <LifluAvatar seed={user.uid} size={64} />
+                      <LifluAvatar seed={user.avatarSeed || user.uid} size={64} />
                     </div>
                   </div>
                   <div>
