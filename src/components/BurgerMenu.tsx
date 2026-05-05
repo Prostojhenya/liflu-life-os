@@ -1,29 +1,59 @@
-import React from 'react';
+import React, { useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useStore } from '@/store/useStore';
 import { auth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { User, Target, MessageCircle, LogOut, ChevronRight, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AddSheet } from './AddSheet';
 
 interface Props {
   open: boolean;
   onClose: () => void;
 }
 
+type AddType = 'task' | 'habit' | 'goal' | 'shopping';
+
 const menuItems = [
-  { id: 'profile', icon: User,          label: 'Профиль',      sub: 'Уровень, XP, достижения', color: '#8B5CF6' },
-  { id: 'goals',   icon: Target,         label: 'Цели',         sub: 'Долгосрочные цели',        color: '#3B82F6' },
-  { id: 'chat',    icon: MessageCircle,  label: 'Чат',          sub: 'Сообщения и пространства', color: '#10b981' },
+  { id: 'profile', icon: User,          label: 'Профиль',      sub: 'Уровень, XP, достижения', color: '#8B5CF6', addType: null },
+  { id: 'goals',   icon: Target,         label: 'Цели',         sub: 'Зажми для добавления',     color: '#3B82F6', addType: 'goal' as AddType },
+  { id: 'chat',    icon: MessageCircle,  label: 'Чат',          sub: 'Сообщения и пространства', color: '#10b981', addType: null },
 ] as const;
 
 export const BurgerMenu: React.FC<Props> = ({ open, onClose }) => {
   const { user, setUser, setActiveTab, activeTab } = useStore();
+  const [sheetType, setSheetType] = React.useState<AddType | null>(null);
 
-  const handleNav = (id: string) => {
-    setActiveTab(id as any);
-    onClose();
-  };
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const didLongPress = useRef(false);
+
+  const startPress = useCallback((addType: AddType | null) => {
+    if (!addType) return;
+    didLongPress.current = false;
+    longPressTimer.current = setTimeout(() => {
+      didLongPress.current = true;
+      if (navigator.vibrate) navigator.vibrate(40);
+      setSheetType(addType);
+    }, 450);
+  }, []);
+
+  const endPress = useCallback((id: string, addType: AddType | null) => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    if (!didLongPress.current) {
+      setActiveTab(id as any);
+      onClose();
+    }
+  }, [setActiveTab, onClose]);
+
+  const cancelPress = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
 
   const handleSignOut = async () => {
     try {
@@ -35,6 +65,7 @@ export const BurgerMenu: React.FC<Props> = ({ open, onClose }) => {
   };
 
   return (
+    <>
     <AnimatePresence>
       {open && (
         <>
@@ -88,9 +119,12 @@ export const BurgerMenu: React.FC<Props> = ({ open, onClose }) => {
                 return (
                   <button
                     key={item.id}
-                    onPointerDown={() => handleNav(item.id)}
+                    onPointerDown={() => startPress(item.addType)}
+                    onPointerUp={() => endPress(item.id, item.addType)}
+                    onPointerLeave={cancelPress}
+                    onPointerCancel={cancelPress}
                     className={cn(
-                      'w-full flex items-center gap-4 px-3 py-3.5 rounded-2xl transition-all mb-1',
+                      'w-full flex items-center gap-4 px-3 py-3.5 rounded-2xl transition-all mb-1 select-none',
                       isActive ? 'bg-white/8' : 'hover:bg-white/5'
                     )}
                   >
@@ -104,6 +138,9 @@ export const BurgerMenu: React.FC<Props> = ({ open, onClose }) => {
                       <p className="text-sm font-black text-white font-display">{item.label}</p>
                       <p className="text-[10px] text-[#8b7ca8] font-display">{item.sub}</p>
                     </div>
+                    {item.addType && (
+                      <span className="text-[9px] text-[#6b7280] font-display mr-1">зажми +</span>
+                    )}
                     <ChevronRight size={16} className="text-[#6b7280]" />
                   </button>
                 );
@@ -129,5 +166,8 @@ export const BurgerMenu: React.FC<Props> = ({ open, onClose }) => {
         </>
       )}
     </AnimatePresence>
+
+    <AddSheet type={sheetType} onClose={() => setSheetType(null)} />
+  </>
   );
 };
