@@ -92,63 +92,62 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           </div>
         ) : (
           // Default header with burger
-          <div className="bg-[#0b0416] border-b border-white/5 px-4 pt-3 pb-2 flex flex-col gap-2">
-            {/* Row 1: burger · title · search+bell */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setIsBurgerOpen(true)}
-                className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-[#8b7ca8] flex-shrink-0 active:bg-white/10 transition-colors"
-              >
-                <Menu size={18} />
-              </button>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-black text-white uppercase font-display leading-tight">
-                  {TAB_TITLES[activeTab] ?? activeTab}
-                </p>
-                <p className="text-[9px] text-[#8b7ca8] font-display">
-                  {new Date().toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'long' })}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-[#8b7ca8] active:bg-white/10 transition-colors">
-                  <Search size={17} />
-                </button>
-                <button className="relative w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-[#8b7ca8] active:bg-white/10 transition-colors">
-                  <Bell size={17} />
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-accent-purple rounded-full text-[10px] font-black text-white flex items-center justify-center leading-none">
-                    3
-                  </span>
-                </button>
-              </div>
+          <div className="bg-[#0b0416] border-b border-white/5 px-4 py-3 flex items-center gap-3">
+            {/* Burger */}
+            <button
+              onClick={() => setIsBurgerOpen(true)}
+              className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-[#8b7ca8] flex-shrink-0 active:bg-white/10 transition-colors"
+            >
+              <Menu size={18} />
+            </button>
+
+            {/* Title + date */}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-black text-white uppercase font-display leading-tight">
+                {TAB_TITLES[activeTab] ?? activeTab}
+              </p>
+              <p className="text-[9px] text-[#8b7ca8] font-display">
+                {new Date().toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'long' })}
+              </p>
             </div>
 
-            {/* Row 2: XP bar + streak */}
+            {/* XP pill */}
             {user && (
-              <div className="flex items-center gap-3">
-                {/* XP progress */}
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <span className="text-[10px] font-black text-accent-purple font-display whitespace-nowrap">
-                    Lv{user.level}
-                  </span>
-                  <div className="flex-1 h-1 bg-white/5 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-accent-purple to-accent-magenta rounded-full transition-all"
-                      style={{ width: `${Math.min(100, (user.totalXP / (user.level * user.level * 50)) * 100)}%` }}
-                    />
-                  </div>
-                  <span className="text-[10px] text-[#8b7ca8] font-display whitespace-nowrap">
-                    {user.totalXP} XP
-                  </span>
+              <div className="flex items-center gap-1.5 bg-white/5 rounded-xl px-2.5 py-1.5 flex-shrink-0">
+                <div className="w-12 h-1 bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-accent-purple to-accent-magenta rounded-full"
+                    style={{ width: `${Math.min(100, (user.totalXP / (user.level * user.level * 50)) * 100)}%` }}
+                  />
                 </div>
-                {/* Streak */}
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <Flame size={13} className="text-orange-400" />
-                  <span className="text-[10px] font-black text-orange-400 font-display">
-                    {streak} дн.
-                  </span>
-                </div>
+                <span className="text-[10px] font-black text-accent-purple font-display whitespace-nowrap">
+                  Lv{user.level}
+                </span>
               </div>
             )}
+
+            {/* Streak pill */}
+            {user && (
+              <div className="flex items-center gap-1 bg-white/5 rounded-xl px-2.5 py-1.5 flex-shrink-0">
+                <Flame size={12} className="text-orange-400" />
+                <span className="text-[10px] font-black text-orange-400 font-display whitespace-nowrap">
+                  {streak}
+                </span>
+              </div>
+            )}
+
+            {/* Search + Bell */}
+            <div className="flex items-center gap-1.5">
+              <button className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-[#8b7ca8] active:bg-white/10 transition-colors">
+                <Search size={17} />
+              </button>
+              <button className="relative w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-[#8b7ca8] active:bg-white/10 transition-colors">
+                <Bell size={17} />
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-accent-purple rounded-full text-[10px] font-black text-white flex items-center justify-center leading-none">
+                  3
+                </span>
+              </button>
+            </div>
           </div>
         )}
       </header>
