@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore, XP_VALUES, calculateLevel, STAT_LABELS } from '@/store/useStore';
-import { db, auth, handleFirestoreError, OperationType } from '@/firebase';
-import { collection, query, orderBy, onSnapshot, addDoc, updateDoc, doc, deleteDoc, serverTimestamp, where } from 'firebase/firestore';
-import { Plus, CheckCircle2, Circle, ChevronRight, Flame, Filter, Clock } from 'lucide-react';
+import { db, handleFirestoreError, OperationType } from '@/firebase';
+import {
+  collection, query, orderBy, onSnapshot, updateDoc, doc,
+  serverTimestamp, setDoc, getDocs, getDoc
+} from 'firebase/firestore';
+import { CheckCircle2, Circle, ChevronRight, Flame, CalendarDays, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 
+/* ─── Types ─────────────────────────────────────────────────────────── */
 interface Task {
   id: string;
   title: string;
@@ -16,263 +20,271 @@ interface Task {
   xpAwarded: boolean;
   xpValue: number;
   createdAt: any;
-  scheduledDate?: string; // Format: YYYY-MM-DD
+  scheduledDate?: string;
 }
 
-const STAT_COLORS = {
-  strength: '#ef4444',
-  agility: '#f59e0b', 
-  intelligence: '#8B5CF6',
-  vitality: '#10b981',
-  sense: '#3B82F6'
+interface Habit {
+  id: string;
+  title: string;
+  streak: number;
+  xpValue: number;
+  spaceId: string;
+  lastCompleted?: any;
+  statType?: 'strength' | 'agility' | 'intelligence' | 'vitality' | 'sense';
+}
+
+interface DayCompletion {
+  userId: string;
+  displayName: string;
+  photoURL?: string;
+  completedAt: any;
+}
+
+/* ─── Helpers ────────────────────────────────────────────────────────── */
+const todayKey = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
+const PREVIEW = 3;
+
+/* ─── Component ──────────────────────────────────────────────────────── */
 export const Dashboard: React.FC = () => {
   const { user, setUser, selectedDate, setSelectedDate } = useStore();
+
+  // Tasks
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [newTask, setNewTask] = useState('');
-  const [isAdding, setIsAdding] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('active');
-  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Habits
+  const [habits, setHabits] = useState<Habit[]>([]);
+  const [completions, setCompletions] = useState<Record<string, DayCompletion[]>>({});
+  const [isSharedSpace, setIsSharedSpace] = useState(false);
+  const [members, setMembers] = useState<{ userId: string; displayName: string; photoURL?: string }[]>([]);
+  const [processingHabit, setProcessingHabit] = useState<string | null>(null);
+
+  // UI expand state
+  const [tasksExpanded, setTasksExpanded] = useState(false);
+  const [habitsExpanded, setHabitsExpanded] = useState(false);
+  const [eventsExpanded, setEventsExpanded] = useState(false);
+
+  // Calendar
   const [visibleMonth, setVisibleMonth] = useState('');
   const calendarRef = useRef<HTMLDivElement>(null);
 
-  // Scroll to today on mount — instant, no animation
+  /* ── Calendar scroll ── */
   useEffect(() => {
     if (calendarRef.current) {
-      const todayElement = calendarRef.current.querySelector('[data-today="true"]');
-      if (todayElement) {
-        todayElement.scrollIntoView({ behavior: 'instant', block: 'nearest', inline: 'center' });
-      }
+      const el = calendarRef.current.querySelector('[data-today="true"]');
+      el?.scrollIntoView({ behavior: 'instant', block: 'nearest', inline: 'center' });
     }
   }, []);
 
-  // Scroll to selected date when it changes
   useEffect(() => {
     if (calendarRef.current) {
-      const selectedElement = calendarRef.current.querySelector('[data-selected="true"]');
-      if (selectedElement) {
-        selectedElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-      }
+      const el = calendarRef.current.querySelector('[data-selected="true"]');
+      el?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }
   }, [selectedDate]);
 
-  // Update visible month on scroll
   useEffect(() => {
     const handleScroll = () => {
-      if (calendarRef.current) {
-        const container = calendarRef.current;
-        const containerRect = container.getBoundingClientRect();
-        const centerX = containerRect.left + containerRect.width / 2;
-        
-        const days = container.querySelectorAll('[data-month]');
-        let closestDay: Element | null = null;
-        let closestDistance = Infinity;
-        
-        days.forEach((day) => {
-          const rect = day.getBoundingClientRect();
-          const dayCenter = rect.left + rect.width / 2;
-          const distance = Math.abs(centerX - dayCenter);
-          
-          if (distance < closestDistance) {
-            closestDistance = distance;
-            closestDay = day;
-          }
-        });
-        
-        if (closestDay) {
-          const month = closestDay.getAttribute('data-month');
-          if (month) setVisibleMonth(month);
-        }
+      if (!calendarRef.current) return;
+      const container = calendarRef.current;
+      const cx = container.getBoundingClientRect().left + container.getBoundingClientRect().width / 2;
+      let closest: Element | null = null;
+      let minDist = Infinity;
+      container.querySelectorAll('[data-month]').forEach(day => {
+        const r = day.getBoundingClientRect();
+        const dist = Math.abs(cx - (r.left + r.width / 2));
+        if (dist < minDist) { minDist = dist; closest = day; }
+      });
+      if (closest) {
+        const m = (closest as Element).getAttribute('data-month');
+        if (m) setVisibleMonth(m);
       }
     };
-
-    const container = calendarRef.current;
-    if (container) {
-      container.addEventListener('scroll', handleScroll);
-      handleScroll(); // Initial call
-      return () => container.removeEventListener('scroll', handleScroll);
-    }
+    const c = calendarRef.current;
+    if (c) { c.addEventListener('scroll', handleScroll); handleScroll(); return () => c.removeEventListener('scroll', handleScroll); }
   }, []);
 
+  /* ── Tasks subscription ── */
   useEffect(() => {
     if (!user?.currentSpaceId) return;
-
-    const path = `spaces/${user.currentSpaceId}/tasks`;
-    const q = query(
-      collection(db, path),
-      orderBy('createdAt', 'desc')
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setTasks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Task)));
-    });
-
-    return () => unsubscribe();
+    const q = query(collection(db, `spaces/${user.currentSpaceId}/tasks`), orderBy('createdAt', 'desc'));
+    return onSnapshot(q, snap => setTasks(snap.docs.map(d => ({ id: d.id, ...d.data() } as Task))));
   }, [user?.currentSpaceId]);
 
-  const addTask = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTask.trim() || !user?.currentSpaceId || isAdding) return;
-
-    setIsAdding(true);
-    const path = `spaces/${user.currentSpaceId}/tasks`;
-    try {
-      const finalStat = 'intelligence';
-      
-      // Format selected date as YYYY-MM-DD
-      const scheduledDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
-
-      await addDoc(collection(db, path), {
-        title: newTask,
-        statType: finalStat,
-        completed: false,
-        xpAwarded: false,
-        xpValue: XP_VALUES.TASK,
-        spaceId: user.currentSpaceId,
-        scheduledDate: scheduledDateStr,
-        createdAt: serverTimestamp(),
-      });
-      setNewTask('');
-    } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, path);
-    } finally {
-      setIsAdding(false);
-    }
-  };
-
-  const toggleTask = async (task: Task) => {
+  /* ── Habits subscription ── */
+  useEffect(() => {
     if (!user?.currentSpaceId) return;
+    const q = query(collection(db, `spaces/${user.currentSpaceId}/habits`), orderBy('createdAt', 'desc'));
+    return onSnapshot(q, snap => setHabits(snap.docs.map(d => ({ id: d.id, ...d.data() } as Habit))));
+  }, [user?.currentSpaceId]);
+
+  /* ── Space type + members ── */
+  useEffect(() => {
+    if (!user?.currentSpaceId) return;
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, 'spaces', user.currentSpaceId!));
+        if (!snap.exists()) return;
+        const shared = snap.data().type === 'shared';
+        setIsSharedSpace(shared);
+        if (shared) {
+          const mSnap = await getDocs(collection(db, `spaces/${user.currentSpaceId}/members`));
+          setMembers(mSnap.docs.map(d => ({ userId: d.data().userId, displayName: d.data().displayName || 'Участник', photoURL: d.data().photoURL || '' })));
+        }
+      } catch (e) { console.error(e); }
+    })();
+  }, [user?.currentSpaceId]);
+
+  /* ── Habit completions (shared) ── */
+  useEffect(() => {
+    if (!user?.currentSpaceId || !isSharedSpace || habits.length === 0) return;
+    const today = todayKey();
+    const unsubs = habits.map(habit => {
+      const q = collection(db, `spaces/${user.currentSpaceId}/habits/${habit.id}/completions`);
+      return onSnapshot(q, snap => {
+        const todayC = snap.docs.filter(d => d.id.startsWith(today)).map(d => d.data() as DayCompletion);
+        setCompletions(prev => ({ ...prev, [habit.id]: todayC }));
+      });
+    });
+    return () => unsubs.forEach(u => u());
+  }, [user?.currentSpaceId, isSharedSpace, habits.length]);
+
+  /* ── Toggle task ── */
+  const toggleTask = async (task: Task) => {
+    if (!user?.currentSpaceId || task.type === 'event') return;
     const path = `spaces/${user.currentSpaceId}/tasks/${task.id}`;
-    const userRef = doc(db, 'users', user.uid);
-    
     try {
       const taskRef = doc(db, path);
-      const newCompletedState = !task.completed;
-      
-      await updateDoc(taskRef, { completed: newCompletedState });
-
-      if (newCompletedState && !task.xpAwarded) {
-        const newTotalXP = user.totalXP + task.xpValue;
-        const newLevel = calculateLevel(newTotalXP);
-        const newStats = { ...user.stats };
-        newStats[task.statType] = (newStats[task.statType] || 0) + 1;
-
-        await updateDoc(userRef, {
-          totalXP: newTotalXP,
-          level: newLevel,
-          stats: newStats
-        });
+      const newCompleted = !task.completed;
+      await updateDoc(taskRef, { completed: newCompleted });
+      if (newCompleted && !task.xpAwarded) {
+        const newXP = user.totalXP + task.xpValue;
+        const newLevel = calculateLevel(newXP);
+        const newStats = { ...user.stats, [task.statType]: (user.stats[task.statType] || 0) + 1 };
+        await updateDoc(doc(db, 'users', user.uid), { totalXP: newXP, level: newLevel, stats: newStats });
         await updateDoc(taskRef, { xpAwarded: true });
-
-        setUser({ ...user, totalXP: newTotalXP, level: newLevel, stats: newStats });
+        setUser({ ...user, totalXP: newXP, level: newLevel, stats: newStats });
       }
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, path);
-    }
+    } catch (e) { handleFirestoreError(e, OperationType.UPDATE, path); }
+  };
+
+  /* ── Complete habit ── */
+  const completeHabit = async (habit: Habit) => {
+    if (!user?.currentSpaceId || iCompletedToday(habit) || processingHabit === habit.id) return;
+    setProcessingHabit(habit.id);
+    const habitRef = doc(db, `spaces/${user.currentSpaceId}/habits`, habit.id);
+    try {
+      if (isSharedSpace) {
+        const today = todayKey();
+        await setDoc(doc(db, `spaces/${user.currentSpaceId}/habits/${habit.id}/completions`, `${today}_${user.uid}`), {
+          userId: user.uid, displayName: user.displayName, photoURL: user.photoURL || '', completedAt: serverTimestamp(),
+        });
+        const newC = [...(completions[habit.id] || []), { userId: user.uid, displayName: user.displayName, photoURL: user.photoURL, completedAt: null }];
+        if (newC.length >= members.length) await updateDoc(habitRef, { streak: habit.streak + 1, lastCompleted: serverTimestamp() });
+      } else {
+        await updateDoc(habitRef, { streak: habit.streak + 1, lastCompleted: serverTimestamp() });
+      }
+      const newXP = (user.totalXP || 0) + XP_VALUES.HABIT;
+      const stat = habit.statType || 'vitality';
+      const newStats = { ...user.stats, [stat]: (user.stats[stat] || 0) + 1 };
+      await updateDoc(doc(db, 'users', user.uid), { totalXP: newXP, level: calculateLevel(newXP), stats: newStats });
+      setUser({ ...user, totalXP: newXP, level: calculateLevel(newXP), stats: newStats });
+    } catch (e) { console.error(e); }
+    finally { setProcessingHabit(null); }
+  };
+
+  /* ── Habit helpers ── */
+  const isCompletedToday = (habit: Habit) => {
+    if (isSharedSpace) return members.length > 0 && (completions[habit.id] || []).length >= members.length;
+    if (!habit.lastCompleted) return false;
+    const d = habit.lastCompleted.toDate ? habit.lastCompleted.toDate() : new Date(habit.lastCompleted);
+    const t = new Date();
+    return d.getDate() === t.getDate() && d.getMonth() === t.getMonth() && d.getFullYear() === t.getFullYear();
+  };
+  const iCompletedToday = (habit: Habit) => {
+    if (!isSharedSpace) return isCompletedToday(habit);
+    return (completions[habit.id] || []).some(c => c.userId === user?.uid);
   };
 
   if (!user) return null;
 
-  // Generate infinite calendar (90 days back and forward)
+  /* ── Calendar data ── */
   const today = new Date();
-  const currentDay = today.getDate();
-  const currentMonth = today.getMonth();
-  const currentYear = today.getFullYear();
-
-  const weekDays = [];
-  for (let i = -90; i <= 90; i++) {
-    const date = new Date(currentYear, currentMonth, currentDay + i);
-    weekDays.push({
+  const weekDays = Array.from({ length: 181 }, (_, i) => {
+    const date = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 90 + i);
+    return {
       day: date.getDate(),
-      weekday: date.toLocaleDateString('ru-RU', { weekday: 'short' }).slice(0, 2).charAt(0).toUpperCase() + date.toLocaleDateString('ru-RU', { weekday: 'short' }).slice(1, 2),
-      isToday: i === 0,
+      weekday: date.toLocaleDateString('ru-RU', { weekday: 'short' }).slice(0, 2).toUpperCase(),
+      isToday: i === 90,
       month: date.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }),
-      date: date
-    });
-  }
+      date,
+    };
+  });
 
   const currentMonthName = visibleMonth || today.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
-
-  // Filter tasks by selected date
   const isToday = selectedDate.toDateString() === today.toDateString();
-  const selectedDateStr = selectedDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
   const isPastDate = selectedDate < today && !isToday;
-  const isFutureDate = selectedDate > today && !isToday;
-  
-  // Format selected date for comparison
+  const selectedDateStr = selectedDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
   const selectedDateFormatted = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
 
-  // Filter tasks by scheduled date
-  const allTasksForDate = tasks.filter(t => {
-    const taskDate = t.scheduledDate || `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    return taskDate === selectedDateFormatted;
+  /* ── Filtered data ── */
+  const allForDate = tasks.filter(t => {
+    const d = t.scheduledDate || `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    return d === selectedDateFormatted;
   });
 
-  // Apply active/completed filter only for display (events always shown)
-  const filteredTasks = allTasksForDate.filter(t => {
-    if (t.type === 'event') return true; // events always visible
-    if (filter === 'completed') return t.completed;
-    if (filter === 'active') return !t.completed;
-    return true;
-  });
-
-  // Counters only count real tasks (not events)
-  const realTasksForDate = allTasksForDate.filter(t => t.type !== 'event');
-
-  const displayedTasks = isExpanded ? filteredTasks : filteredTasks.slice(0, 3);
-  const hasMoreTasks = filteredTasks.length > 3;
-
-  // Calculate stats for selected date only — only real tasks, not events
-  const completedForSelectedDate = realTasksForDate.filter(t => t.completed).length;
-  const totalForSelectedDate = realTasksForDate.length;
-  const progressPercent = totalForSelectedDate > 0 ? Math.round((completedForSelectedDate / totalForSelectedDate) * 100) : 0;
-
-  // Calculate streak (simplified - just count completed tasks)
-  const streak = tasks.filter(t => t.completed).length;
+  const realTasks = allForDate.filter(t => t.type !== 'event');
+  const events = allForDate.filter(t => t.type === 'event').sort((a, b) => (a.eventTime || '').localeCompare(b.eventTime || ''));
+  const activeTasks = realTasks.filter(t => !t.completed);
+  const completedCount = realTasks.filter(t => t.completed).length;
+  const totalCount = realTasks.length;
+  const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   const xpToNextLevel = user.level * user.level * 50;
   const xpProgress = Math.min(100, (user.totalXP / xpToNextLevel) * 100);
 
+  /* ── Displayed slices ── */
+  const shownTasks = tasksExpanded ? activeTasks : activeTasks.slice(0, PREVIEW);
+  const shownHabits = habitsExpanded ? habits : habits.slice(0, PREVIEW);
+  const shownEvents = eventsExpanded ? events : events.slice(0, PREVIEW);
+
   return (
-    <div className="space-y-4 pb-32">
-      {/* Week Calendar */}
+    <div className="space-y-4 pb-28">
+
+      {/* ── Calendar ── */}
       <div className="bg-[#150a24]/50 border border-white/5 rounded-3xl p-4">
-        <div className="flex items-center justify-between mb-3 px-2">
-          <span className="text-xs font-black text-[#8b7ca8] uppercase tracking-wider font-display">
-            {currentMonthName}
-          </span>
+        <div className="flex items-center justify-between mb-3 px-1">
+          <span className="text-xs font-black text-[#8b7ca8] uppercase tracking-wider font-display">{currentMonthName}</span>
+          {!isToday && (
+            <button onClick={() => setSelectedDate(new Date())} className="text-[10px] text-accent-purple font-black uppercase tracking-wider font-display">
+              Сегодня
+            </button>
+          )}
         </div>
         <div ref={calendarRef} className="overflow-x-auto snap-x snap-mandatory scrollbar-hide">
-          <div className="flex gap-1.5 pb-2" style={{ width: 'max-content' }}>
-            {weekDays.map((day, index) => {
+          <div className="flex gap-1.5 pb-1" style={{ width: 'max-content' }}>
+            {weekDays.map((day, i) => {
               const isSelected = selectedDate.toDateString() === day.date.toDateString();
               return (
                 <button
-                  key={index}
+                  key={i}
                   data-today={day.isToday}
                   data-selected={isSelected}
                   data-month={day.month}
                   onClick={() => setSelectedDate(day.date)}
                   className={cn(
-                    "flex flex-col items-center justify-center snap-center py-3 rounded-2xl transition-all flex-shrink-0 cursor-pointer",
-                    day.isToday && !isSelected
-                      ? "bg-accent-purple/20 text-accent-purple border border-accent-purple/30" 
-                      : isSelected
-                      ? "bg-accent-purple text-white shadow-[0_0_20px_rgba(139,92,246,0.4)]"
-                      : "bg-transparent text-[#8b7ca8] hover:bg-white/5"
+                    'flex flex-col items-center justify-center snap-center py-2.5 rounded-2xl transition-all flex-shrink-0',
+                    day.isToday && !isSelected ? 'bg-accent-purple/20 text-accent-purple border border-accent-purple/30'
+                      : isSelected ? 'bg-accent-purple text-white shadow-[0_0_20px_rgba(139,92,246,0.4)]'
+                      : 'text-[#8b7ca8] hover:bg-white/5'
                   )}
                   style={{ width: 'calc((100vw - 48px) / 7)' }}
                 >
-                  <span className="text-[10px] font-black uppercase tracking-wider mb-2 font-display">
-                    {day.weekday}
-                  </span>
-                  <span className={cn(
-                    "text-xl font-black font-display",
-                    isSelected && "glow-purple"
-                  )}>
-                    {day.day}
-                  </span>
+                  <span className="text-[9px] font-black uppercase tracking-wider mb-1.5 font-display">{day.weekday}</span>
+                  <span className={cn('text-lg font-black font-display', isSelected && 'glow-purple')}>{day.day}</span>
                 </button>
               );
             })}
@@ -280,272 +292,251 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Profile Header */}
-      <div className="bg-[#150a24]/50 border border-white/5 rounded-3xl p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-4">
-            <div className="level-circle w-16 h-16">
+      {/* ── Profile / XP ── */}
+      <div className="bg-[#150a24]/50 border border-white/5 rounded-3xl p-5">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <div className="level-circle w-14 h-14">
               <div className="level-circle-inner relative">
-                <img 
-                  src={user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`} 
-                  alt="Profile" 
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
+                <img src={user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               </div>
             </div>
             <div>
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-0.5">
                 <span className="text-sm font-black text-white uppercase font-display">Level {user.level}</span>
-                <span className="text-accent-purple">💎</span>
+                <span className="text-accent-purple text-xs">💎</span>
               </div>
-              <div className="text-2xl font-black text-white glow-purple font-display">
-                {user.totalXP} <span className="text-sm text-accent-purple">XP</span>
+              <div className="text-xl font-black text-white glow-purple font-display">
+                {user.totalXP} <span className="text-xs text-accent-purple">XP</span>
               </div>
             </div>
           </div>
           <div className="text-right">
-            <div className="text-xs text-[#8b7ca8] font-black uppercase tracking-wider font-display mb-1">
+            <div className="text-[10px] text-[#8b7ca8] font-black uppercase tracking-wider font-display mb-1">
               {xpToNextLevel - user.totalXP} XP до Level {user.level + 1}
             </div>
-            <ChevronRight className="ml-auto text-[#8b7ca8]" size={20} />
+            {totalCount > 0 && (
+              <div className="text-xs font-black text-white font-display">{completedCount}/{totalCount} задач</div>
+            )}
           </div>
         </div>
-        
-        {/* XP Progress Bar */}
-        <div className="status-bar-bg h-2">
-          <motion.div 
-            initial={{ width: 0 }}
-            animate={{ width: `${xpProgress}%` }}
-            className="status-bar-fill bg-gradient-to-r from-accent-purple to-accent-magenta"
-          />
+        <div className="status-bar-bg h-1.5">
+          <motion.div initial={{ width: 0 }} animate={{ width: `${xpProgress}%` }} className="status-bar-fill bg-gradient-to-r from-accent-purple to-accent-magenta" />
         </div>
       </div>
 
-      {/* Today Section */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-2xl font-black text-white uppercase font-display mb-1">
-              {isToday ? 'Сегодня' : selectedDateStr}
-            </h2>
-            {isToday && (
-              <p className="text-xs text-[#8b7ca8] font-bold uppercase tracking-wider font-display">
-                {completedForSelectedDate}/{totalForSelectedDate} выполнено
-              </p>
-            )}
-          </div>
-          {isToday && (
-            <button 
-              onClick={() => setFilter(filter === 'active' ? 'all' : 'active')}
-              className={cn(
-                "flex items-center gap-2 px-3 py-2 border rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all",
-                filter === 'all'
-                  ? "bg-accent-purple/10 border-accent-purple/30 text-accent-purple"
-                  : "bg-[#150a24] border-white/5 text-[#8b7ca8]"
-              )}
-            >
-              <Filter size={14} />
-              {filter === 'all' ? 'Все' : 'Активные'}
-            </button>
+      {/* ── Date heading ── */}
+      <div className="flex items-center justify-between px-1">
+        <h2 className="text-xl font-black text-white uppercase font-display">
+          {isToday ? 'Сегодня' : selectedDateStr}
+        </h2>
+        {totalCount > 0 && (
+          <span className="text-xs text-[#8b7ca8] font-bold font-display">{progressPercent}% выполнено</span>
+        )}
+      </div>
+
+      {/* ══════════════════════════════════════════
+          SECTION: Задачи
+      ══════════════════════════════════════════ */}
+      <div className="bg-[#150a24]/50 border border-white/5 rounded-3xl overflow-hidden">
+        {/* Section header */}
+        <div className="flex items-center gap-2 px-4 pt-4 pb-3">
+          <span className="text-base">👑</span>
+          <span className="text-sm font-black text-white uppercase tracking-wider font-display flex-1">Задачи</span>
+          {totalCount > 0 && (
+            <span className="text-[10px] text-[#8b7ca8] font-display">{completedCount}/{totalCount}</span>
           )}
         </div>
 
-
-
-        {/* Tasks List or Empty State */}
-        {!isToday && allTasksForDate.length === 0 ? (
-          <div className="py-12 text-center">
-            <div className="text-6xl mb-4">
-              {isPastDate ? '📜' : '📅'}
-            </div>
-            <h3 className="text-lg font-black text-white mb-2 font-display">
-              {isPastDate ? 'История' : 'Планы'}
-            </h3>
-            <p className="text-sm text-[#8b7ca8] font-display">
-              {isPastDate 
-                ? 'Здесь будет история выполненных задач' 
-                : 'Здесь будут запланированные задачи'}
-            </p>
-          </div>
-        ) : allTasksForDate.length === 0 ? (
-          <div className="py-12 text-center">
-            <div className="text-6xl mb-4">✨</div>
-            <h3 className="text-lg font-black text-white mb-2 font-display">
-              Нет задач
-            </h3>
-            <p className="text-sm text-[#8b7ca8] font-display">
-              Добавьте первую задачу на сегодня
-            </p>
-          </div>
-        ) : filteredTasks.length === 0 ? (
-          <div className="py-12 text-center">
-            <div className="text-6xl mb-4">✅</div>
-            <h3 className="text-lg font-black text-white mb-2 font-display">
-              Все выполнено!
-            </h3>
-            <p className="text-sm text-[#8b7ca8] font-display">
-              {completedForSelectedDate} из {totalForSelectedDate} задач завершено
-            </p>
+        {activeTasks.length === 0 ? (
+          <div className="px-4 pb-4 text-center py-6">
+            {isPastDate ? (
+              <p className="text-xs text-[#8b7ca8] font-display">Нет активных задач</p>
+            ) : (
+              <p className="text-xs text-[#8b7ca8] font-display">
+                {completedCount > 0 ? `Все ${completedCount} задач выполнено ✅` : 'Зажми иконку задач в навигации'}
+              </p>
+            )}
           </div>
         ) : (
-          <div className="space-y-3">
-          <AnimatePresence>
-            {displayedTasks.map((task) => (
-              <motion.div
-                key={task.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                className={cn(
-                  "border rounded-2xl p-4 transition-all",
-                  task.type === 'event'
-                    ? "bg-[#f59e0b]/5 border-[#f59e0b]/20"
-                    : task.completed
-                      ? "bg-accent-blue/5 border-accent-blue/30 bg-[#150a24]/50"
-                      : "bg-[#150a24]/50 border-white/5 hover:border-white/10"
-                )}
-                onClick={() => task.type !== 'event' ? toggleTask(task) : undefined}
-              >
-                <div className="flex items-center gap-4">
-                  <div className={cn(
-                    "w-6 h-6 rounded-lg flex items-center justify-center transition-all flex-shrink-0",
-                    task.type === 'event'
-                      ? "bg-[#f59e0b]/20 text-[#f59e0b]"
-                      : task.completed
-                        ? "bg-accent-blue text-white"
-                        : "bg-white/5 text-[#8b7ca8]"
-                  )}>
-                    {task.type === 'event'
-                      ? <Clock size={14} />
-                      : task.completed
-                        ? <CheckCircle2 size={16} strokeWidth={3} />
-                        : <Circle size={16} />}
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
+          <>
+            <div className="divide-y divide-white/5">
+              <AnimatePresence>
+                {shownTasks.map(task => (
+                  <motion.button
+                    key={task.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => toggleTask(task)}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/3 transition-colors text-left"
+                  >
+                    {/* Checkbox */}
                     <div className={cn(
-                      "text-sm font-bold text-white mb-1 font-display",
-                      task.completed && "line-through opacity-50"
+                      'w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all',
+                      task.completed ? 'bg-accent-purple border-accent-purple' : 'border-white/20 bg-transparent'
                     )}>
-                      {task.title}
+                      {task.completed && <CheckCircle2 size={14} className="text-white" strokeWidth={3} />}
                     </div>
-                    <div className="flex items-center gap-2">
-                      {task.type === 'event' ? (
-                        <>
-                          <span className="text-[10px] font-black uppercase tracking-wider font-display text-[#f59e0b]">
-                            Событие
-                          </span>
-                          {task.eventTime && (
-                            <>
-                              <span className="text-[#6b7280] text-[10px]">·</span>
-                              <span className="text-[10px] font-bold font-display text-[#f59e0b]">
-                                {task.eventTime}
-                              </span>
-                            </>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          <div 
-                            className="w-2 h-2 rounded-full" 
-                            style={{ backgroundColor: STAT_COLORS[task.statType] }}
-                          />
-                          <span className="text-[10px] font-black uppercase tracking-wider font-display" style={{ color: STAT_COLORS[task.statType] }}>
-                            {STAT_LABELS[task.statType]}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
 
-                  {task.type !== 'event' && task.completed && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="text-accent-blue font-black text-sm font-display"
-                    >
+                    {/* Title + stat */}
+                    <div className="flex-1 min-w-0">
+                      <div className={cn('text-sm font-semibold text-white font-display truncate', task.completed && 'line-through opacity-40')}>
+                        {task.title}
+                      </div>
+                      <div className="text-[10px] text-accent-purple font-display mt-0.5">
+                        {STAT_LABELS[task.statType]}
+                      </div>
+                    </div>
+
+                    {/* XP */}
+                    <span className="text-xs font-black text-accent-purple font-display flex-shrink-0">
                       +{task.xpValue} XP
-                    </motion.div>
-                  )}
-                  {task.type !== 'event' && !task.completed && (
-                    <div className="text-[#8b7ca8] font-black text-xs font-display">
-                      {task.xpValue} XP
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-        )}
+                    </span>
+                  </motion.button>
+                ))}
+              </AnimatePresence>
+            </div>
 
-        {/* Expand button */}
-        {hasMoreTasks && isToday && (
-          <motion.button
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="w-full mt-3 py-4 bg-[#150a24]/50 border border-white/5 rounded-2xl text-xs font-black text-[#8b7ca8] uppercase tracking-wider font-display hover:border-accent-purple/30 transition-all flex items-center justify-center gap-2"
-          >
-            {isExpanded ? '↑ Свернуть' : `↓ Показать еще ${filteredTasks.length - 3}`}
-          </motion.button>
+            {activeTasks.length > PREVIEW && (
+              <button
+                onClick={() => setTasksExpanded(!tasksExpanded)}
+                className="w-full py-3 flex items-center justify-center gap-1.5 text-[11px] text-[#8b7ca8] font-display border-t border-white/5 hover:text-white transition-colors"
+              >
+                {tasksExpanded ? 'Свернуть' : `Показать все задачи`}
+                <ChevronDown size={13} className={cn('transition-transform', tasksExpanded && 'rotate-180')} />
+              </button>
+            )}
+          </>
         )}
       </div>
 
-      {/* Stats Section - Only show for today */}
+      {/* ══════════════════════════════════════════
+          SECTION: Привычки (only today)
+      ══════════════════════════════════════════ */}
       {isToday && (
-        <div className="grid grid-cols-2 gap-4">
-          {/* Progress Circle */}
-          <div className="bg-[#150a24]/50 border border-white/5 rounded-2xl p-6 flex flex-col items-center justify-center">
-            <div className="relative w-24 h-24 mb-3">
-              <svg className="w-full h-full transform -rotate-90">
-                <circle
-                  cx="48"
-                  cy="48"
-                  r="40"
-                  stroke="rgba(255,255,255,0.05)"
-                  strokeWidth="8"
-                  fill="none"
-                />
-                <circle
-                  cx="48"
-                  cy="48"
-                  r="40"
-                  stroke="#3B82F6"
-                  strokeWidth="8"
-                  fill="none"
-                  strokeDasharray={`${progressPercent * 2.51} 251`}
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-2xl font-black text-white font-display">{progressPercent}%</span>
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-xs font-black text-[#8b7ca8] uppercase tracking-wider font-display mb-1">
-                Сегодня: {completedForSelectedDate} из {totalForSelectedDate}
-              </div>
-              <div className="text-[10px] text-accent-blue font-bold font-display">
-                Продолжай в том же духе!
-              </div>
-            </div>
+        <div className="bg-[#150a24]/50 border border-white/5 rounded-3xl overflow-hidden">
+          <div className="flex items-center gap-2 px-4 pt-4 pb-3">
+            <Flame size={16} className="text-accent-purple" />
+            <span className="text-sm font-black text-white uppercase tracking-wider font-display flex-1">Привычки</span>
           </div>
 
-          {/* Streak */}
-          <div className="bg-[#150a24]/50 border border-white/5 rounded-2xl p-6 flex flex-col items-center justify-center">
-            <div className="w-16 h-16 bg-accent-orange/10 rounded-full flex items-center justify-center mb-3">
-              <Flame size={32} className="text-accent-orange" />
+          {habits.length === 0 ? (
+            <div className="px-4 pb-4 text-center py-6">
+              <p className="text-xs text-[#8b7ca8] font-display">Зажми иконку привычек в навигации</p>
             </div>
-            <div className="text-3xl font-black text-white mb-1 font-display">{streak}</div>
-            <div className="text-xs font-black text-[#8b7ca8] uppercase tracking-wider font-display">
-              дней подряд
-            </div>
-          </div>
+          ) : (
+            <>
+              <div className="divide-y divide-white/5">
+                {shownHabits.map(habit => {
+                  const done = iCompletedToday(habit);
+                  const disabled = done || processingHabit === habit.id;
+                  return (
+                    <div key={habit.id} className="flex items-center gap-3 px-4 py-3">
+                      {/* Complete button */}
+                      <button
+                        onClick={() => completeHabit(habit)}
+                        disabled={disabled}
+                        className={cn(
+                          'w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all',
+                          done ? 'bg-[#10b981] border-[#10b981]' : 'border-white/20 bg-transparent active:scale-90'
+                        )}
+                      >
+                        {done && <CheckCircle2 size={14} className="text-white" strokeWidth={3} />}
+                      </button>
+
+                      {/* Title */}
+                      <div className="flex-1 min-w-0">
+                        <div className={cn('text-sm font-semibold text-white font-display truncate', done && 'opacity-50')}>
+                          {habit.title}
+                        </div>
+                        <div className="text-[10px] text-[#8b7ca8] font-display mt-0.5">
+                          Серия: {habit.streak} дней
+                        </div>
+                      </div>
+
+                      {/* XP */}
+                      <span className="text-xs font-black text-[#10b981] font-display flex-shrink-0">
+                        +{habit.xpValue} XP
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {habits.length > PREVIEW && (
+                <button
+                  onClick={() => setHabitsExpanded(!habitsExpanded)}
+                  className="w-full py-3 flex items-center justify-center gap-1.5 text-[11px] text-[#8b7ca8] font-display border-t border-white/5 hover:text-white transition-colors"
+                >
+                  {habitsExpanded ? 'Свернуть' : 'Показать все привычки'}
+                  <ChevronDown size={13} className={cn('transition-transform', habitsExpanded && 'rotate-180')} />
+                </button>
+              )}
+            </>
+          )}
         </div>
       )}
+
+      {/* ══════════════════════════════════════════
+          SECTION: События
+      ══════════════════════════════════════════ */}
+      {(events.length > 0 || !isPastDate) && (
+        <div className="bg-[#150a24]/50 border border-white/5 rounded-3xl overflow-hidden">
+          <div className="flex items-center gap-2 px-4 pt-4 pb-3">
+            <CalendarDays size={16} className="text-[#3B82F6]" />
+            <span className="text-sm font-black text-white uppercase tracking-wider font-display flex-1">
+              {isToday ? 'Сегодняшние события' : 'События'}
+            </span>
+          </div>
+
+          {events.length === 0 ? (
+            <div className="px-4 pb-4 text-center py-6">
+              <p className="text-xs text-[#8b7ca8] font-display">Нет событий</p>
+            </div>
+          ) : (
+            <>
+              <div className="divide-y divide-white/5">
+                {shownEvents.map(event => (
+                  <div key={event.id} className="flex items-stretch gap-0 px-4 py-3">
+                    {/* Time block */}
+                    <div className="flex flex-col items-center justify-center w-14 flex-shrink-0 mr-3">
+                      {event.eventTime ? (
+                        <span className="text-sm font-black text-[#3B82F6] font-display leading-tight">{event.eventTime}</span>
+                      ) : (
+                        <span className="text-[10px] text-[#8b7ca8] font-display">Весь день</span>
+                      )}
+                    </div>
+
+                    {/* Vertical line */}
+                    <div className="w-0.5 bg-[#3B82F6]/30 rounded-full mr-3 flex-shrink-0" />
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold text-white font-display truncate">{event.title}</div>
+                      <div className="text-[10px] text-[#3B82F6] font-display mt-0.5">Событие</div>
+                    </div>
+
+                    {/* Dot */}
+                    <div className="w-2 h-2 rounded-full bg-[#3B82F6] mt-1.5 flex-shrink-0" />
+                  </div>
+                ))}
+              </div>
+
+              {events.length > PREVIEW && (
+                <button
+                  onClick={() => setEventsExpanded(!eventsExpanded)}
+                  className="w-full py-3 flex items-center justify-center gap-1.5 text-[11px] text-[#8b7ca8] font-display border-t border-white/5 hover:text-white transition-colors"
+                >
+                  {eventsExpanded ? 'Свернуть' : 'Показать все события'}
+                  <ChevronDown size={13} className={cn('transition-transform', eventsExpanded && 'rotate-180')} />
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
     </div>
   );
 };
