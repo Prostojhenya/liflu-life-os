@@ -114,14 +114,14 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
             {/* Today progress pill */}
             {user && todayProgress.total > 0 && (
-              <div className="flex items-center gap-1.5 bg-white/5 rounded-xl px-2.5 py-1.5 flex-shrink-0">
-                <div className="w-10 h-1 bg-white/10 rounded-full overflow-hidden">
+              <div className="flex items-center gap-1.5 bg-white/5 rounded-xl px-2.5 py-1.5 flex-shrink-0 w-[72px]">
+                <div className="w-8 h-1 bg-white/10 rounded-full overflow-hidden flex-shrink-0">
                   <div
                     className="h-full bg-accent-blue rounded-full transition-all"
                     style={{ width: `${Math.round((todayProgress.done / todayProgress.total) * 100)}%` }}
                   />
                 </div>
-                <span className="text-[10px] font-black text-[#8b7ca8] font-display whitespace-nowrap">
+                <span className="text-[10px] font-black text-[#8b7ca8] font-display whitespace-nowrap flex-1 text-right">
                   {todayProgress.done}/{todayProgress.total}
                 </span>
               </div>
@@ -129,14 +129,14 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
             {/* XP pill */}
             {user && (
-              <div className="flex items-center gap-1.5 bg-white/5 rounded-xl px-2.5 py-1.5 flex-shrink-0">
-                <div className="w-12 h-1 bg-white/10 rounded-full overflow-hidden">
+              <div className="flex items-center gap-1.5 bg-white/5 rounded-xl px-2.5 py-1.5 flex-shrink-0 w-[72px]">
+                <div className="w-8 h-1 bg-white/10 rounded-full overflow-hidden flex-shrink-0">
                   <div
                     className="h-full bg-gradient-to-r from-accent-purple to-accent-magenta rounded-full"
                     style={{ width: `${Math.min(100, (user.totalXP / (user.level * user.level * 50)) * 100)}%` }}
                   />
                 </div>
-                <span className="text-[10px] font-black text-accent-purple font-display whitespace-nowrap">
+                <span className="text-[10px] font-black text-accent-purple font-display whitespace-nowrap flex-1 text-right">
                   Lv{user.level}
                 </span>
               </div>
@@ -144,10 +144,10 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
             {/* Streak pill */}
             {user && (
-              <div className="flex items-center gap-1 bg-white/5 rounded-xl px-2.5 py-1.5 flex-shrink-0">
-                <Flame size={12} className="text-orange-400" />
-                <span className="text-[10px] font-black text-orange-400 font-display whitespace-nowrap">
-                  {streak}
+              <div className="flex items-center justify-center gap-1 bg-white/5 rounded-xl px-2.5 py-1.5 flex-shrink-0 w-[72px]">
+                <Flame size={12} className="text-orange-400 flex-shrink-0" />
+                <span className="text-[10px] font-black text-orange-400 font-display whitespace-nowrap flex-1 text-right">
+                  {streak} дн.
                 </span>
               </div>
             )}
