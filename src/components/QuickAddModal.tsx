@@ -12,7 +12,7 @@ interface Props {
   onClose: () => void;
 }
 
-const CONFIG: Record<Exclude<AddType, 'picker'>, {
+const CONFIG: Record<Exclude<AddType, 'picker' | 'event'>, {
   title: string;
   placeholder: string;
   emoji: string;
@@ -33,7 +33,8 @@ export const QuickAddModal: React.FC<Props> = ({ type, onClose }) => {
   const [isSaving, setIsSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const realType = type === 'picker' ? null : type;
+  const realType = (type === 'picker' || type === null) ? null : (type === 'event' ? 'task' : type) as Exclude<AddType, 'picker' | 'event'>;
+  const startsAsEvent = type === 'event';
 
   // Past date check
   const todayMidnight = new Date(); todayMidnight.setHours(0, 0, 0, 0);
@@ -43,11 +44,11 @@ export const QuickAddModal: React.FC<Props> = ({ type, onClose }) => {
   useEffect(() => {
     if (realType) {
       setValue('');
-      setItemType('task');
+      setItemType(startsAsEvent ? 'event' : 'task');
       setEventTime('');
       if (!isPastDate) setTimeout(() => inputRef.current?.focus(), 100);
     }
-  }, [realType]);
+  }, [type]);
 
   const handleSave = async () => {
     if (!value.trim() || !user?.currentSpaceId || isSaving || !realType) return;
@@ -111,10 +112,18 @@ export const QuickAddModal: React.FC<Props> = ({ type, onClose }) => {
   };
 
   const cfg = realType ? CONFIG[realType] : null;
+  // For 'event' type override title/color/emoji
+  const displayCfg = cfg ? (startsAsEvent ? {
+    ...cfg,
+    title: 'Новое событие',
+    emoji: '📅',
+    color: '#ec4899',
+    hasEventToggle: true,
+  } : cfg) : null;
 
   return (
     <AnimatePresence>
-      {realType && cfg && (
+      {realType && displayCfg && (
         <>
           {/* Backdrop */}
           <motion.div
@@ -142,12 +151,12 @@ export const QuickAddModal: React.FC<Props> = ({ type, onClose }) => {
               <div className="flex items-center gap-3">
                 <div
                   className="w-10 h-10 rounded-2xl flex items-center justify-center text-xl"
-                  style={{ backgroundColor: `${cfg.color}20` }}
+                  style={{ backgroundColor: `${displayCfg.color}20` }}
                 >
-                  {cfg.emoji}
+                  {displayCfg.emoji}
                 </div>
                 <div>
-                  <p className="text-sm font-black text-white uppercase tracking-wider font-display">{cfg.title}</p>
+                  <p className="text-sm font-black text-white uppercase tracking-wider font-display">{displayCfg.title}</p>
                   {realType === 'task' && (
                     <p className="text-[10px] text-[#8b7ca8] font-display mt-0.5">
                       {selectedDate.toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'long' })}
@@ -174,7 +183,7 @@ export const QuickAddModal: React.FC<Props> = ({ type, onClose }) => {
             ) : (
               <div className="space-y-3">
                 {/* Task / Event toggle */}
-                {cfg.hasEventToggle && (
+                {displayCfg.hasEventToggle && (
                   <div className="flex gap-2 p-1 bg-white/5 rounded-2xl">
                     <button
                       onClick={() => setItemType('task')}
@@ -199,7 +208,7 @@ export const QuickAddModal: React.FC<Props> = ({ type, onClose }) => {
                 )}
 
                 {/* Time for events */}
-                {cfg.hasEventToggle && itemType === 'event' && (
+                {displayCfg.hasEventToggle && itemType === 'event' && (
                   <input
                     type="time"
                     value={eventTime}
@@ -214,7 +223,7 @@ export const QuickAddModal: React.FC<Props> = ({ type, onClose }) => {
                   value={value}
                   onChange={e => setValue(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={itemType === 'event' ? 'Название события...' : cfg.placeholder}
+                  placeholder={itemType === 'event' ? 'Название события...' : displayCfg.placeholder}
                   className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-sm text-white placeholder:text-[#8b7ca8]/50 font-display focus:outline-none focus:border-white/20 transition-all"
                 />
 
@@ -223,7 +232,7 @@ export const QuickAddModal: React.FC<Props> = ({ type, onClose }) => {
                   onClick={handleSave}
                   disabled={!value.trim() || isSaving}
                   className="w-full py-3.5 rounded-2xl font-black uppercase tracking-wider font-display text-sm text-white flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-40 shadow-lg"
-                  style={{ backgroundColor: itemType === 'event' ? '#f59e0b' : cfg.color }}
+                  style={{ backgroundColor: itemType === 'event' ? '#f59e0b' : displayCfg.color }}
                 >
                   {isSaving
                     ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

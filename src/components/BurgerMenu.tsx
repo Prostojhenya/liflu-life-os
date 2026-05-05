@@ -44,7 +44,7 @@ const QUICK_ACTIONS: { type: AddType; label: string; icon: React.ElementType; co
   { type: 'shopping', label: 'Покупка',  icon: ShoppingCart, color: '#f59e0b' },
   { type: 'habit',    label: 'Привычка', icon: RefreshCw,    color: '#10b981' },
   { type: 'goal',     label: 'Цель',     icon: Flag,         color: '#3B82F6' },
-  { type: 'task',     label: 'Событие',  icon: CalendarDays, color: '#ec4899' },
+  { type: 'event',    label: 'Событие',  icon: CalendarDays, color: '#ec4899' },
 ];
 
 export const BurgerMenu: React.FC<Props> = ({ isOpen, onClose, onSpaceSwitch, onQuickAdd }) => {

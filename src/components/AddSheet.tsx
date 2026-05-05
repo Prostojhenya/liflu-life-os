@@ -6,7 +6,7 @@ import { useStore, XP_VALUES } from '@/store/useStore';
 import { X, Plus, CheckSquare, Flame, Target, ShoppingCart, CalendarDays } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type AddType = 'task' | 'habit' | 'goal' | 'shopping' | 'picker';
+export type AddType = 'task' | 'habit' | 'goal' | 'shopping' | 'picker' | 'event';
 
 interface Props {
   type: AddType | null;
