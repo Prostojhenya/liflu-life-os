@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '@/firebase';
-import { collection, query, orderBy, onSnapshot, updateDoc, doc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { useStore, XP_VALUES, calculateLevel, STAT_LABELS } from '@/store/useStore';
 import { handleFirestoreError, OperationType } from '@/firebase';
-import { CheckCircle2, Circle, Trash2, Calendar } from 'lucide-react';
+import { CheckCircle2, Circle, Trash2, Calendar, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 
 interface Task {
   id: string;
   title: string;
+  type?: 'task' | 'event';
+  eventTime?: string | null;
   statType: 'strength' | 'agility' | 'intelligence' | 'vitality' | 'sense';
   completed: boolean;
   xpAwarded: boolean;
@@ -101,12 +103,25 @@ export const Tasks: React.FC = () => {
     return true;
   });
 
-  // Group by date
+  // Group by date, sort within each day: events with time first, then by time
   const groups: Record<string, Task[]> = {};
   for (const task of visibleTasks) {
     const key = task.scheduledDate || today;
     if (!groups[key]) groups[key] = [];
     groups[key].push(task);
+  }
+  // Sort within each group: events with time first (by time), then tasks
+  for (const key of Object.keys(groups)) {
+    groups[key].sort((a, b) => {
+      const aIsEvent = a.type === 'event';
+      const bIsEvent = b.type === 'event';
+      if (aIsEvent && bIsEvent) {
+        return (a.eventTime || '').localeCompare(b.eventTime || '');
+      }
+      if (aIsEvent) return -1;
+      if (bIsEvent) return 1;
+      return 0;
+    });
   }
   const sortedDates = Object.keys(groups).sort();
 
@@ -194,22 +209,29 @@ export const Tasks: React.FC = () => {
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 16 }}
                       className={cn(
-                        'bg-[#150a24]/50 border rounded-2xl p-3.5 flex items-center gap-3 transition-all',
-                        task.completed
-                          ? 'border-white/5 opacity-60'
-                          : 'border-white/5 hover:border-white/10'
+                        'border rounded-2xl p-3.5 flex items-center gap-3 transition-all',
+                        task.type === 'event'
+                          ? 'bg-[#f59e0b]/5 border-[#f59e0b]/20'
+                          : 'bg-[#150a24]/50 border-white/5 hover:border-white/10',
+                        task.completed && 'opacity-50'
                       )}
                     >
                       <button
-                        onClick={() => toggleTask(task)}
+                        onClick={() => task.type !== 'event' ? toggleTask(task) : undefined}
                         className={cn(
                           'w-6 h-6 rounded-lg flex items-center justify-center transition-all flex-shrink-0',
-                          task.completed ? 'bg-accent-blue text-white' : 'bg-white/5 text-[#8b7ca8]'
+                          task.type === 'event'
+                            ? 'bg-[#f59e0b]/20 text-[#f59e0b] cursor-default'
+                            : task.completed
+                              ? 'bg-accent-blue text-white'
+                              : 'bg-white/5 text-[#8b7ca8]'
                         )}
                       >
-                        {task.completed
-                          ? <CheckCircle2 size={14} strokeWidth={3} />
-                          : <Circle size={14} />}
+                        {task.type === 'event'
+                          ? <Clock size={13} />
+                          : task.completed
+                            ? <CheckCircle2 size={14} strokeWidth={3} />
+                            : <Circle size={14} />}
                       </button>
 
                       <div className="flex-1 min-w-0">
@@ -220,25 +242,45 @@ export const Tasks: React.FC = () => {
                           {task.title}
                         </div>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <div
-                            className="w-1.5 h-1.5 rounded-full"
-                            style={{ backgroundColor: STAT_COLORS[task.statType] }}
-                          />
-                          <span
-                            className="text-[9px] font-black uppercase tracking-wider font-display"
-                            style={{ color: STAT_COLORS[task.statType] }}
-                          >
-                            {STAT_LABELS[task.statType]}
-                          </span>
+                          {task.type === 'event' ? (
+                            <>
+                              <span className="text-[9px] font-black uppercase tracking-wider font-display text-[#f59e0b]">
+                                Событие
+                              </span>
+                              {task.eventTime && (
+                                <>
+                                  <span className="text-[#6b7280]">·</span>
+                                  <span className="text-[9px] font-bold font-display text-[#f59e0b]">
+                                    {task.eventTime}
+                                  </span>
+                                </>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <div
+                                className="w-1.5 h-1.5 rounded-full"
+                                style={{ backgroundColor: STAT_COLORS[task.statType] }}
+                              />
+                              <span
+                                className="text-[9px] font-black uppercase tracking-wider font-display"
+                                style={{ color: STAT_COLORS[task.statType] }}
+                              >
+                                {STAT_LABELS[task.statType]}
+                              </span>
+                            </>
+                          )}
                         </div>
                       </div>
 
-                      <span className={cn(
-                        'text-xs font-black font-display flex-shrink-0',
-                        task.completed ? 'text-accent-blue' : 'text-[#8b7ca8]'
-                      )}>
-                        {task.completed ? '+' : ''}{task.xpValue} XP
-                      </span>
+                      {task.type !== 'event' && (
+                        <span className={cn(
+                          'text-xs font-black font-display flex-shrink-0',
+                          task.completed ? 'text-accent-blue' : 'text-[#8b7ca8]'
+                        )}>
+                          {task.completed ? '+' : ''}{task.xpValue} XP
+                        </span>
+                      )}
 
                       <button
                         onClick={() => deleteTask(task.id)}

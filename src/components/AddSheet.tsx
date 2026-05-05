@@ -4,6 +4,7 @@ import { db } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useStore, XP_VALUES } from '@/store/useStore';
 import { X, Plus } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 type AddType = 'task' | 'habit' | 'goal' | 'shopping';
 
@@ -12,8 +13,8 @@ interface Props {
   onClose: () => void;
 }
 
-const CONFIG: Record<AddType, { title: string; placeholder: string; emoji: string; color: string }> = {
-  task:     { title: 'Новая задача',    placeholder: 'Что нужно сделать?',  emoji: '✅', color: '#8B5CF6' },
+const CONFIG: Record<AddType, { title: string; placeholder: string; emoji: string; color: string; hasTypeToggle?: boolean }> = {
+  task:     { title: 'Новая задача',    placeholder: 'Что нужно сделать?',  emoji: '✅', color: '#8B5CF6', hasTypeToggle: true },
   habit:    { title: 'Новая привычка',  placeholder: 'Какую привычку добавить?', emoji: '🔥', color: '#10b981' },
   goal:     { title: 'Новая цель',      placeholder: 'К чему стремишься?',  emoji: '🎯', color: '#3B82F6' },
   shopping: { title: 'Добавить покупку', placeholder: 'Что купить?',        emoji: '🛒', color: '#f59e0b' },
@@ -22,6 +23,8 @@ const CONFIG: Record<AddType, { title: string; placeholder: string; emoji: strin
 export const AddSheet: React.FC<Props> = ({ type, onClose }) => {
   const { user, selectedDate } = useStore();
   const [value, setValue] = useState('');
+  const [itemType, setItemType] = useState<'task' | 'event'>('task');
+  const [eventTime, setEventTime] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -36,6 +39,8 @@ export const AddSheet: React.FC<Props> = ({ type, onClose }) => {
   useEffect(() => {
     if (type) {
       setValue('');
+      setItemType('task');
+      setEventTime('');
       if (!isPastDate) setTimeout(() => inputRef.current?.focus(), 150);
     }
   }, [type]);
@@ -52,6 +57,8 @@ export const AddSheet: React.FC<Props> = ({ type, onClose }) => {
       if (type === 'task') {
         await addDoc(collection(db, `spaces/${user.currentSpaceId}/tasks`), {
           title: value.trim(),
+          type: itemType,
+          eventTime: itemType === 'event' ? eventTime : null,
           statType: 'intelligence',
           completed: false,
           xpAwarded: false,
@@ -163,26 +170,67 @@ export const AddSheet: React.FC<Props> = ({ type, onClose }) => {
                 </p>
               </div>
             ) : (
-              <div className="flex gap-3 pb-4">
-                <input
-                  ref={inputRef}
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder={cfg.placeholder}
-                  className="flex-1 bg-[#150a24] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder:text-[#8b7ca8]/50 font-display focus:outline-none focus:border-white/30 transition-all"
-                />
-                <button
-                  onPointerDown={handleSave}
-                  disabled={!value.trim() || isSaving}
-                  className="w-12 h-12 rounded-2xl flex items-center justify-center active:scale-95 transition-all disabled:opacity-40 shadow-lg"
-                  style={{ backgroundColor: cfg.color }}
-                >
-                  {isSaving
-                    ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    : <Plus size={20} className="text-white" strokeWidth={2.5} />
-                  }
-                </button>
+              <div className="pb-4 space-y-3">
+                {/* Task / Event toggle — only for task type */}
+                {cfg.hasTypeToggle && (
+                  <div className="flex gap-2">
+                    <button
+                      onPointerDown={() => setItemType('task')}
+                      className={cn(
+                        'flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all border',
+                        itemType === 'task'
+                          ? 'bg-accent-purple/10 border-accent-purple/30 text-accent-purple'
+                          : 'bg-[#150a24] border-white/5 text-[#6b7280]'
+                      )}
+                    >
+                      ✅ Задача
+                    </button>
+                    <button
+                      onPointerDown={() => setItemType('event')}
+                      className={cn(
+                        'flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all border',
+                        itemType === 'event'
+                          ? 'bg-[#f59e0b]/10 border-[#f59e0b]/30 text-[#f59e0b]'
+                          : 'bg-[#150a24] border-white/5 text-[#6b7280]'
+                      )}
+                    >
+                      📅 Событие
+                    </button>
+                  </div>
+                )}
+
+                {/* Time input for events */}
+                {cfg.hasTypeToggle && itemType === 'event' && (
+                  <input
+                    type="time"
+                    value={eventTime}
+                    onChange={(e) => setEventTime(e.target.value)}
+                    className="w-full bg-[#150a24] border border-white/10 rounded-2xl px-4 py-2.5 text-sm text-white font-display focus:outline-none focus:border-white/30 transition-all"
+                  />
+                )}
+
+                {/* Main input + save */}
+                <div className="flex gap-3">
+                  <input
+                    ref={inputRef}
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder={itemType === 'event' ? 'Название события...' : cfg.placeholder}
+                    className="flex-1 bg-[#150a24] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder:text-[#8b7ca8]/50 font-display focus:outline-none focus:border-white/30 transition-all"
+                  />
+                  <button
+                    onPointerDown={handleSave}
+                    disabled={!value.trim() || isSaving}
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center active:scale-95 transition-all disabled:opacity-40 shadow-lg flex-shrink-0"
+                    style={{ backgroundColor: itemType === 'event' ? '#f59e0b' : cfg.color }}
+                  >
+                    {isSaving
+                      ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      : <Plus size={20} className="text-white" strokeWidth={2.5} />
+                    }
+                  </button>
+                </div>
               </div>
             )}
           </motion.div>
