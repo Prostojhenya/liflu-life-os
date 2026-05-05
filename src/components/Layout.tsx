@@ -47,7 +47,6 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   }, []);
 
   const isChat = activeTab === 'chat';
-  const isCreate = activeTab === 'create';
   const hideNav = isChat && keyboardOpen;
 
   return (
@@ -111,9 +110,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       {/* Main Content */}
       <main className={cn(
         'min-h-0',
-        isChat ? 'flex-1 flex flex-col overflow-hidden' :
-        isCreate ? 'flex-1 flex flex-col overflow-hidden' :
-        'flex-1 overflow-y-auto custom-scrollbar'
+        isChat ? 'flex-1 flex flex-col overflow-hidden' : 'flex-1 overflow-y-auto custom-scrollbar'
       )}>
         <motion.div
           key={activeTab}
@@ -122,9 +119,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           className={cn(
             'max-w-4xl mx-auto w-full',
-            isChat ? 'flex-1 flex flex-col overflow-hidden px-4 pt-3 pb-0' :
-            isCreate ? 'flex-1 flex flex-col overflow-hidden h-full' :
-            'p-5 pb-28'
+            isChat ? 'flex-1 flex flex-col overflow-hidden px-4 pt-3 pb-0' : 'p-5 pb-28'
           )}
         >
           {children}

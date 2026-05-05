@@ -10,7 +10,6 @@ import { Habits } from './components/Habits';
 import { Shopping } from './components/Shopping';
 import { Chat } from './components/Chat';
 import { Goals } from './components/Goals';
-import { CreateHub } from './components/CreateHub';
 import { Profile } from './components/Profile';
 import { LoadingScreen } from './components/LoadingScreen';
 import { ChatHeaderProvider } from './store/chatHeaderContext';
@@ -213,7 +212,6 @@ export default function App() {
         {activeTab === 'shopping' && <Shopping />}
         {activeTab === 'chat' && <Chat />}
         {activeTab === 'goals' && <Goals />}
-        {activeTab === 'create' && <CreateHub />}
         {activeTab === 'profile' && <Profile />}
       </Layout>
     </ChatHeaderProvider>
