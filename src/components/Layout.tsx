@@ -7,7 +7,7 @@ import { SpaceSwitcher } from './SpaceSwitcher';
 import { BurgerMenu } from './BurgerMenu';
 import { db } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import { Menu, ArrowLeft, Users } from 'lucide-react';
+import { Menu, ArrowLeft, Users, Search, Bell } from 'lucide-react';
 import { useChatHeader } from '@/store/chatHeaderContext';
 
 const TAB_TITLES: Record<string, string> = {
@@ -104,18 +104,19 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                 <p className="text-[9px] text-[#8b7ca8] font-display truncate">{currentSpace.name}</p>
               )}
             </div>
-            {/* Avatar shortcut */}
-            <button
-              onClick={() => setIsBurgerOpen(true)}
-              className="w-8 h-8 rounded-full overflow-hidden border border-white/10 flex-shrink-0"
-            >
-              <img
-                src={user?.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.uid}`}
-                alt="avatar"
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-              />
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Search */}
+              <button className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-[#8b7ca8] active:bg-white/10 transition-colors">
+                <Search size={17} />
+              </button>
+              {/* Notifications */}
+              <button className="relative w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-[#8b7ca8] active:bg-white/10 transition-colors">
+                <Bell size={17} />
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-accent-purple rounded-full text-[10px] font-black text-white flex items-center justify-center leading-none">
+                  3
+                </span>
+              </button>
+            </div>
           </div>
         )}
       </header>
