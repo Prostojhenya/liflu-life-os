@@ -24,10 +24,12 @@ interface AppState {
   isAuthReady: boolean;
   activeTab: 'dashboard' | 'tasks' | 'habits' | 'shopping' | 'chat' | 'goals' | 'profile';
   selectedDate: Date;
+  streak: number;
   setUser: (user: UserProfile | null) => void;
   setAuthReady: (ready: boolean) => void;
   setActiveTab: (tab: AppState['activeTab']) => void;
   setSelectedDate: (date: Date) => void;
+  setStreak: (streak: number) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -35,10 +37,12 @@ export const useStore = create<AppState>((set) => ({
   isAuthReady: false,
   activeTab: 'dashboard',
   selectedDate: new Date(),
+  streak: 0,
   setUser: (user) => set({ user }),
   setAuthReady: (ready) => set({ isAuthReady: ready }),
   setActiveTab: (tab) => set({ activeTab: tab }),
   setSelectedDate: (date) => set({ selectedDate: date }),
+  setStreak: (streak) => set({ streak }),
 }));
 
 export const calculateLevel = (xp: number) => {

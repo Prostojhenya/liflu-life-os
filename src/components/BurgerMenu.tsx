@@ -6,7 +6,8 @@ import {
   X, Home, CheckSquare, Flame, Target, BarChart2,
   Bot, Settings, Moon, LogOut, Users, ChevronRight,
   Plus, RefreshCw, Flag, ShoppingCart, CalendarDays,
-  Trash2, Pencil, Check, Lock
+  Trash2, Pencil, Check, Lock, Trophy, User,
+  CircleDollarSign, Workflow
 } from 'lucide-react';
 import { auth, db } from '@/firebase';
 import { signOut } from 'firebase/auth';
@@ -30,14 +31,20 @@ interface Props {
   onQuickAdd: (type: AddType) => void;
 }
 
-const SECTIONS = [
-  { id: 'dashboard', icon: Home,        label: 'Сегодня'      },
-  { id: 'tasks',     icon: CheckSquare, label: 'Задачи'       },
-  { id: 'habits',    icon: Flame,       label: 'Привычки'     },
-  { id: 'goals',     icon: Target,      label: 'Цели'         },
-  { id: 'chat',      icon: BarChart2,   label: 'Аналитика'    },
-  { id: 'profile',   icon: Bot,         label: 'AI ассистент' },
-] as const;
+const SECTIONS: { id: string; icon: React.ElementType; label: string; available: boolean }[] = [
+  { id: 'dashboard', icon: Home,        label: 'Главная',        available: true  },
+  { id: 'tasks',     icon: CheckSquare, label: 'Задачи',         available: true  },
+  { id: 'habits',    icon: Flame,       label: 'Привычки',       available: true  },
+  { id: 'shopping',  icon: ShoppingCart,label: 'Покупки',        available: true  },
+  { id: 'goals',     icon: Target,      label: 'Цели',           available: true  },
+  { id: 'finance',   icon: CircleDollarSign, label: 'Финансы',   available: false },
+  { id: 'ai',        icon: Bot,         label: 'AI Ассистент',   available: false },
+  { id: 'automation',icon: Workflow,    label: 'Автоматизации',  available: false },
+  { id: 'analytics', icon: BarChart2,   label: 'Аналитика',      available: false },
+  { id: 'achievements', icon: Trophy,   label: 'Достижения',     available: false },
+  { id: 'profile',   icon: User,        label: 'Профиль',        available: true  },
+  { id: 'settings',  icon: Settings,    label: 'Настройки',      available: false },
+];
 
 const QUICK_ACTIONS: { type: AddType; label: string; icon: React.ElementType; color: string }[] = [
   { type: 'task',     label: 'Задача',   icon: CheckSquare,  color: '#8B5CF6' },
@@ -258,19 +265,31 @@ export const BurgerMenu: React.FC<Props> = ({ isOpen, onClose, onSpaceSwitch, on
               <div className="px-5 pb-4">
                 <p className="text-[9px] text-[#8b7ca8] font-black uppercase tracking-widest font-display mb-2">Разделы</p>
                 <div className="space-y-0.5">
-                  {SECTIONS.map(({ id, icon: Icon, label }) => {
+                  {SECTIONS.map(({ id, icon: Icon, label, available }) => {
                     const isActive = activeTab === id;
                     return (
                       <button
                         key={id}
-                        onClick={() => { setActiveTab(id as any); onClose(); }}
+                        onClick={() => { if (available) { setActiveTab(id as any); onClose(); } }}
+                        disabled={!available}
                         className={cn(
                           'w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-colors text-left',
-                          isActive ? 'bg-accent-purple text-white' : 'hover:bg-white/5 text-[#8b7ca8]'
+                          isActive
+                            ? 'bg-accent-purple'
+                            : available
+                              ? 'hover:bg-white/5'
+                              : 'opacity-40 cursor-default'
                         )}
                       >
-                        <Icon size={18} />
-                        <span className={cn('text-sm font-semibold font-display', isActive ? 'text-white' : 'text-white/80')}>{label}</span>
+                        <Icon size={18} className={isActive ? 'text-white' : 'text-[#8b7ca8]'} />
+                        <span className={cn('text-sm font-semibold font-display flex-1', isActive ? 'text-white' : 'text-white/80')}>
+                          {label}
+                        </span>
+                        {!available && (
+                          <span className="text-[9px] font-black uppercase tracking-wider font-display text-[#8b7ca8] bg-white/5 px-2 py-0.5 rounded-full">
+                            скоро
+                          </span>
+                        )}
                       </button>
                     );
                   })}
@@ -404,14 +423,10 @@ export const BurgerMenu: React.FC<Props> = ({ isOpen, onClose, onSpaceSwitch, on
               <div className="px-5 pb-8 mt-auto">
                 <p className="text-[9px] text-[#8b7ca8] font-black uppercase tracking-widest font-display mb-2">Другое</p>
                 <div className="space-y-0.5">
-                  <button className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-white/5 transition-colors text-left">
-                    <Settings size={18} className="text-[#8b7ca8]" />
-                    <span className="text-sm font-semibold text-white/80 font-display flex-1">Настройки</span>
-                  </button>
-                  <button className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-white/5 transition-colors text-left">
+                  <button className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-white/5 transition-colors text-left opacity-40 cursor-default">
                     <Moon size={18} className="text-[#8b7ca8]" />
                     <span className="text-sm font-semibold text-white/80 font-display flex-1">Тема</span>
-                    <ChevronRight size={14} className="text-[#8b7ca8]" />
+                    <span className="text-[9px] font-black uppercase tracking-wider font-display text-[#8b7ca8] bg-white/5 px-2 py-0.5 rounded-full">скоро</span>
                   </button>
                   <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-red-500/10 transition-colors text-left">
                     <LogOut size={18} className="text-red-400" />
