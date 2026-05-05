@@ -334,13 +334,13 @@ export const Dashboard: React.FC = () => {
               onClick={() => setFilter(filter === 'active' ? 'all' : 'active')}
               className={cn(
                 "flex items-center gap-2 px-3 py-2 border rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all",
-                filter === 'active' 
-                  ? "bg-[#150a24] border-white/5 text-[#8b7ca8]" 
-                  : "bg-accent-purple/10 border-accent-purple/30 text-accent-purple"
+                filter === 'all'
+                  ? "bg-accent-purple/10 border-accent-purple/30 text-accent-purple"
+                  : "bg-[#150a24] border-white/5 text-[#8b7ca8]"
               )}
             >
               <Filter size={14} />
-              {filter === 'active' ? 'Все' : 'Активные'}
+              {filter === 'all' ? 'Все' : 'Активные'}
             </button>
           )}
         </div>
