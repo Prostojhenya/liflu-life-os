@@ -1,12 +1,13 @@
 import React from 'react';
 import { useStore } from '@/store/useStore';
-import { Home, CheckSquare, ShoppingCart, User, Plus, MessageCircle, Flame } from 'lucide-react';
+import { Home, CheckSquare, ShoppingCart, User, Plus, MessageCircle, Flame, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const leftItems = [
   { id: 'dashboard', icon: Home, label: 'Главная' },
   { id: 'tasks', icon: CheckSquare, label: 'Задачи' },
   { id: 'habits', icon: Flame, label: 'Привычки' },
+  { id: 'goals', icon: Target, label: 'Цели' },
 ] as const;
 
 const rightItems = [
@@ -27,7 +28,7 @@ export const BottomNav: React.FC = () => {
 
   return (
     <nav className="shrink-0 z-50 bg-[#0a0a0f] border-t border-white/5">
-      <div className="grid grid-cols-7 items-end px-2 pt-2 pb-safe">
+      <div className="grid grid-cols-8 items-end px-2 pt-2 pb-safe">
         {leftItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
