@@ -7,6 +7,7 @@ import { SpaceSwitcher } from './SpaceSwitcher';
 import { BurgerMenu } from './BurgerMenu';
 import { AddType } from './AddSheet';
 import { QuickAddModal } from './QuickAddModal';
+import { LifluAvatar } from './LifluAvatar';
 import { db } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { Menu, ArrowLeft, Users, Search, Bell, Flame } from 'lucide-react';
@@ -107,12 +108,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                 onClick={() => setIsBurgerOpen(true)}
                 className="w-8 h-8 rounded-full overflow-hidden border border-white/10 flex-shrink-0"
               >
-                <img
-                  src={user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`}
-                  alt="avatar"
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
+                <LifluAvatar seed={user.uid} size={32} />
               </button>
             )}
 

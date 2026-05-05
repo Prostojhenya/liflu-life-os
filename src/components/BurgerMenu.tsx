@@ -16,6 +16,7 @@ import {
   deleteDoc, serverTimestamp, query, where
 } from 'firebase/firestore';
 import { AddType } from './AddSheet';
+import { LifluAvatar } from './LifluAvatar';
 
 interface Space {
   id: string;
@@ -225,7 +226,7 @@ export const BurgerMenu: React.FC<Props> = ({ isOpen, onClose, onSpaceSwitch, on
                 <div className="flex items-center gap-4 mb-3">
                   <div className="level-circle w-16 h-16 flex-shrink-0">
                     <div className="level-circle-inner relative">
-                      <img src={user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`} alt="avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      <LifluAvatar seed={user.uid} size={64} />
                     </div>
                   </div>
                   <div>
