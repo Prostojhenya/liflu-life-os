@@ -66,6 +66,7 @@ export const Dashboard: React.FC = () => {
   const [tasksExpanded, setTasksExpanded] = useState(false);
   const [habitsExpanded, setHabitsExpanded] = useState(false);
   const [eventsExpanded, setEventsExpanded] = useState(false);
+  const [sectionFilter, setSectionFilter] = useState<'all' | 'tasks' | 'habits' | 'events'>('all');
 
   // Calendar
   const [visibleMonth, setVisibleMonth] = useState('');
@@ -335,10 +336,43 @@ export const Dashboard: React.FC = () => {
         )}
       </div>
 
+      {/* ── Filter bar ── */}
+      <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-0.5">
+        {([
+          { key: 'all',    label: 'Все',       count: activeTasks.length + habits.length + events.length, color: 'bg-accent-purple' },
+          { key: 'tasks',  label: 'Задачи',    count: activeTasks.length,  color: 'bg-[#f97316]' },
+          { key: 'habits', label: 'Привычки',  count: habits.length,       color: 'bg-[#10b981]' },
+          { key: 'events', label: 'События',   count: events.length,       color: 'bg-[#3B82F6]' },
+        ] as const).map(({ key, label, count, color }) => {
+          const active = sectionFilter === key;
+          return (
+            <button
+              key={key}
+              onClick={() => setSectionFilter(key)}
+              className={cn(
+                'flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-black uppercase tracking-wider font-display transition-all flex-shrink-0 border',
+                active
+                  ? 'bg-accent-purple border-accent-purple text-white'
+                  : 'bg-[#150a24]/50 border-white/5 text-[#8b7ca8]'
+              )}
+            >
+              {label}
+              <span className={cn(
+                'min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-black text-white flex items-center justify-center',
+                color
+              )}>
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* ══════════════════════════════════════════
           SECTION: Задачи
       ══════════════════════════════════════════ */}
-      <div className="bg-[#150a24]/50 border border-white/5 rounded-3xl overflow-hidden">
+      {(sectionFilter === 'all' || sectionFilter === 'tasks') && (
+        <div className="bg-[#150a24]/50 border border-white/5 rounded-3xl overflow-hidden">
         {/* Section header */}
         <div className="flex items-center gap-2 px-4 pt-4 pb-3">
           <span className="text-base">👑</span>
@@ -410,11 +444,12 @@ export const Dashboard: React.FC = () => {
           </>
         )}
       </div>
+      )}
 
       {/* ══════════════════════════════════════════
           SECTION: Привычки (only today)
       ══════════════════════════════════════════ */}
-      {isToday && (
+      {isToday && (sectionFilter === 'all' || sectionFilter === 'habits') && (
         <div className="bg-[#150a24]/50 border border-white/5 rounded-3xl overflow-hidden">
           <div className="flex items-center gap-2 px-4 pt-4 pb-3">
             <Flame size={16} className="text-accent-purple" />
@@ -486,7 +521,7 @@ export const Dashboard: React.FC = () => {
       {/* ══════════════════════════════════════════
           SECTION: События
       ══════════════════════════════════════════ */}
-      {(events.length > 0 || !isPastDate) && (
+      {(events.length > 0 || !isPastDate) && (sectionFilter === 'all' || sectionFilter === 'events') && (
         <div className="bg-[#150a24]/50 border border-white/5 rounded-3xl overflow-hidden">
           <div className="flex items-center gap-2 px-4 pt-4 pb-3">
             <CalendarDays size={16} className="text-[#3B82F6]" />
