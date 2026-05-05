@@ -4,7 +4,6 @@ import { db } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useStore, XP_VALUES } from '@/store/useStore';
 import { X, Plus } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import type { AddType } from './AddSheet';
 
 interface Props {
@@ -12,57 +11,57 @@ interface Props {
   onClose: () => void;
 }
 
-const CONFIG: Record<Exclude<AddType, 'picker' | 'event'>, {
+interface Cfg {
   title: string;
   placeholder: string;
   emoji: string;
   color: string;
-  hasEventToggle?: boolean;
-}> = {
-  task:     { title: 'Новая задача',     placeholder: 'Что нужно сделать?',       emoji: '✅', color: '#8B5CF6', hasEventToggle: true },
-  habit:    { title: 'Новая привычка',   placeholder: 'Какую привычку добавить?', emoji: '🔥', color: '#10b981' },
-  goal:     { title: 'Новая цель',       placeholder: 'К чему стремишься?',       emoji: '🎯', color: '#3B82F6' },
-  shopping: { title: 'Добавить покупку', placeholder: 'Что купить?',              emoji: '🛒', color: '#f59e0b' },
+  isEvent: boolean;
+}
+
+const CONFIG: Partial<Record<AddType, Cfg>> = {
+  task:     { title: 'Новая задача',     placeholder: 'Что нужно сделать?',       emoji: '✅', color: '#8B5CF6', isEvent: false },
+  event:    { title: 'Новое событие',    placeholder: 'Название события...',       emoji: '📅', color: '#ec4899', isEvent: true  },
+  habit:    { title: 'Новая привычка',   placeholder: 'Какую привычку добавить?', emoji: '🔥', color: '#10b981', isEvent: false },
+  goal:     { title: 'Новая цель',       placeholder: 'К чему стремишься?',       emoji: '🎯', color: '#3B82F6', isEvent: false },
+  shopping: { title: 'Добавить покупку', placeholder: 'Что купить?',              emoji: '🛒', color: '#f59e0b', isEvent: false },
 };
 
 export const QuickAddModal: React.FC<Props> = ({ type, onClose }) => {
   const { user, selectedDate } = useStore();
   const [value, setValue] = useState('');
-  const [itemType, setItemType] = useState<'task' | 'event'>('task');
   const [eventTime, setEventTime] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const realType = (type === 'picker' || type === null) ? null : (type === 'event' ? 'task' : type) as Exclude<AddType, 'picker' | 'event'>;
-  const startsAsEvent = type === 'event';
+  const cfg = type ? CONFIG[type] : null;
 
-  // Past date check
+  // Past date check (tasks/events only)
   const todayMidnight = new Date(); todayMidnight.setHours(0, 0, 0, 0);
   const checkDate = new Date(selectedDate); checkDate.setHours(0, 0, 0, 0);
-  const isPastDate = realType === 'task' && checkDate < todayMidnight;
+  const isPastDate = (type === 'task' || type === 'event') && checkDate < todayMidnight;
 
   useEffect(() => {
-    if (realType) {
+    if (cfg) {
       setValue('');
-      setItemType(startsAsEvent ? 'event' : 'task');
       setEventTime('');
       if (!isPastDate) setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [type]);
 
   const handleSave = async () => {
-    if (!value.trim() || !user?.currentSpaceId || isSaving || !realType) return;
+    if (!value.trim() || !user?.currentSpaceId || isSaving || !type || !cfg) return;
     setIsSaving(true);
     try {
       const today = new Date();
-      const taskDate = realType === 'task' ? selectedDate : today;
+      const taskDate = (type === 'task' || type === 'event') ? selectedDate : today;
       const dateStr = `${taskDate.getFullYear()}-${String(taskDate.getMonth() + 1).padStart(2, '0')}-${String(taskDate.getDate()).padStart(2, '0')}`;
 
-      if (realType === 'task') {
+      if (type === 'task' || type === 'event') {
         await addDoc(collection(db, `spaces/${user.currentSpaceId}/tasks`), {
           title: value.trim(),
-          type: itemType,
-          eventTime: itemType === 'event' ? eventTime : null,
+          type: cfg.isEvent ? 'event' : 'task',
+          eventTime: cfg.isEvent ? (eventTime || null) : null,
           statType: 'intelligence',
           completed: false,
           xpAwarded: false,
@@ -71,7 +70,7 @@ export const QuickAddModal: React.FC<Props> = ({ type, onClose }) => {
           scheduledDate: dateStr,
           createdAt: serverTimestamp(),
         });
-      } else if (realType === 'habit') {
+      } else if (type === 'habit') {
         await addDoc(collection(db, `spaces/${user.currentSpaceId}/habits`), {
           title: value.trim(),
           statType: 'vitality',
@@ -81,7 +80,7 @@ export const QuickAddModal: React.FC<Props> = ({ type, onClose }) => {
           spaceId: user.currentSpaceId,
           createdAt: serverTimestamp(),
         });
-      } else if (realType === 'goal') {
+      } else if (type === 'goal') {
         await addDoc(collection(db, `spaces/${user.currentSpaceId}/goals`), {
           title: value.trim(),
           progress: 0,
@@ -90,7 +89,7 @@ export const QuickAddModal: React.FC<Props> = ({ type, onClose }) => {
           spaceId: user.currentSpaceId,
           createdAt: serverTimestamp(),
         });
-      } else if (realType === 'shopping') {
+      } else if (type === 'shopping') {
         await addDoc(collection(db, `spaces/${user.currentSpaceId}/shopping`), {
           name: value.trim(),
           completed: false,
@@ -111,19 +110,9 @@ export const QuickAddModal: React.FC<Props> = ({ type, onClose }) => {
     if (e.key === 'Escape') onClose();
   };
 
-  const cfg = realType ? CONFIG[realType] : null;
-  // For 'event' type override title/color/emoji
-  const displayCfg = cfg ? (startsAsEvent ? {
-    ...cfg,
-    title: 'Новое событие',
-    emoji: '📅',
-    color: '#ec4899',
-    hasEventToggle: true,
-  } : cfg) : null;
-
   return (
     <AnimatePresence>
-      {realType && displayCfg && (
+      {cfg && (
         <>
           {/* Backdrop */}
           <motion.div
@@ -151,13 +140,13 @@ export const QuickAddModal: React.FC<Props> = ({ type, onClose }) => {
               <div className="flex items-center gap-3">
                 <div
                   className="w-10 h-10 rounded-2xl flex items-center justify-center text-xl"
-                  style={{ backgroundColor: `${displayCfg.color}20` }}
+                  style={{ backgroundColor: `${cfg.color}20` }}
                 >
-                  {displayCfg.emoji}
+                  {cfg.emoji}
                 </div>
                 <div>
-                  <p className="text-sm font-black text-white uppercase tracking-wider font-display">{displayCfg.title}</p>
-                  {realType === 'task' && (
+                  <p className="text-sm font-black text-white uppercase tracking-wider font-display">{cfg.title}</p>
+                  {(type === 'task' || type === 'event') && (
                     <p className="text-[10px] text-[#8b7ca8] font-display mt-0.5">
                       {selectedDate.toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'long' })}
                     </p>
@@ -177,38 +166,13 @@ export const QuickAddModal: React.FC<Props> = ({ type, onClose }) => {
                 <span className="text-4xl">🔒</span>
                 <p className="text-sm font-black text-white font-display">Прошедшая дата</p>
                 <p className="text-xs text-[#8b7ca8] font-display leading-relaxed">
-                  Нельзя добавлять задачи в прошлое.<br />Выбери сегодня или будущую дату.
+                  Нельзя добавлять в прошлое.<br />Выбери сегодня или будущую дату.
                 </p>
               </div>
             ) : (
               <div className="space-y-3">
-                {/* Task / Event toggle */}
-                {displayCfg.hasEventToggle && (
-                  <div className="flex gap-2 p-1 bg-white/5 rounded-2xl">
-                    <button
-                      onClick={() => setItemType('task')}
-                      className={cn(
-                        'flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all',
-                        itemType === 'task' ? 'bg-accent-purple text-white shadow-lg' : 'text-[#6b7280]'
-                      )}
-                    >
-                      ✅ Задача
-                    </button>
-                    <button
-                      onClick={() => setItemType('event')}
-                      className={cn(
-                        'flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all',
-                        itemType === 'event' ? 'text-white shadow-lg' : 'text-[#6b7280]'
-                      )}
-                      style={itemType === 'event' ? { backgroundColor: '#f59e0b' } : {}}
-                    >
-                      📅 Событие
-                    </button>
-                  </div>
-                )}
-
-                {/* Time for events */}
-                {displayCfg.hasEventToggle && itemType === 'event' && (
+                {/* Time field — only for events */}
+                {cfg.isEvent && (
                   <input
                     type="time"
                     value={eventTime}
@@ -223,7 +187,7 @@ export const QuickAddModal: React.FC<Props> = ({ type, onClose }) => {
                   value={value}
                   onChange={e => setValue(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={itemType === 'event' ? 'Название события...' : displayCfg.placeholder}
+                  placeholder={cfg.placeholder}
                   className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-sm text-white placeholder:text-[#8b7ca8]/50 font-display focus:outline-none focus:border-white/20 transition-all"
                 />
 
@@ -232,14 +196,11 @@ export const QuickAddModal: React.FC<Props> = ({ type, onClose }) => {
                   onClick={handleSave}
                   disabled={!value.trim() || isSaving}
                   className="w-full py-3.5 rounded-2xl font-black uppercase tracking-wider font-display text-sm text-white flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-40 shadow-lg"
-                  style={{ backgroundColor: itemType === 'event' ? '#f59e0b' : displayCfg.color }}
+                  style={{ backgroundColor: cfg.color }}
                 >
                   {isSaving
                     ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    : <>
-                        <Plus size={18} strokeWidth={2.5} />
-                        Добавить
-                      </>
+                    : <><Plus size={18} strokeWidth={2.5} />Добавить</>
                   }
                 </button>
               </div>
