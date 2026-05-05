@@ -23,7 +23,7 @@ const TAB_TITLES: Record<string, string> = {
 };
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { activeTab, user, streak } = useStore();
+  const { activeTab, user, streak, todayProgress } = useStore();
   const { chatHeader } = useChatHeader();
   const [isSpaceSwitcherOpen, setIsSpaceSwitcherOpen] = useState(false);
   const [isBurgerOpen, setIsBurgerOpen] = useState(false);
@@ -101,6 +101,21 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               <Menu size={18} />
             </button>
 
+            {/* Avatar */}
+            {user && (
+              <button
+                onClick={() => setIsBurgerOpen(true)}
+                className="w-8 h-8 rounded-full overflow-hidden border border-white/10 flex-shrink-0"
+              >
+                <img
+                  src={user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`}
+                  alt="avatar"
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              </button>
+            )}
+
             {/* Title + date */}
             <div className="flex-1 min-w-0">
               <p className="text-sm font-black text-white uppercase font-display leading-tight">
@@ -110,6 +125,21 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                 {new Date().toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'long' })}
               </p>
             </div>
+
+            {/* Today progress pill */}
+            {user && todayProgress.total > 0 && (
+              <div className="flex items-center gap-1.5 bg-white/5 rounded-xl px-2.5 py-1.5 flex-shrink-0">
+                <div className="w-10 h-1 bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-accent-blue rounded-full transition-all"
+                    style={{ width: `${Math.round((todayProgress.done / todayProgress.total) * 100)}%` }}
+                  />
+                </div>
+                <span className="text-[10px] font-black text-[#8b7ca8] font-display whitespace-nowrap">
+                  {todayProgress.done}/{todayProgress.total}
+                </span>
+              </div>
+            )}
 
             {/* XP pill */}
             {user && (

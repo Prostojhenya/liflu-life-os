@@ -50,7 +50,7 @@ const PREVIEW = 3;
 
 /* ─── Component ──────────────────────────────────────────────────────── */
 export const Dashboard: React.FC = () => {
-  const { user, setUser, selectedDate, setSelectedDate } = useStore();
+  const { user, setUser, selectedDate, setSelectedDate, setTodayProgress } = useStore();
 
   // Tasks
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -114,6 +114,19 @@ export const Dashboard: React.FC = () => {
     const q = query(collection(db, `spaces/${user.currentSpaceId}/tasks`), orderBy('createdAt', 'desc'));
     return onSnapshot(q, snap => setTasks(snap.docs.map(d => ({ id: d.id, ...d.data() } as Task))));
   }, [user?.currentSpaceId]);
+
+  /* ── Update today's progress in store ── */
+  useEffect(() => {
+    const todayStr = (() => {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    })();
+    const todayTasks = tasks.filter(t => {
+      const td = t.scheduledDate || todayStr;
+      return td === todayStr && t.type !== 'event';
+    });
+    setTodayProgress({ done: todayTasks.filter(t => t.completed).length, total: todayTasks.length });
+  }, [tasks]);
 
   /* ── Habits subscription ── */
   useEffect(() => {
