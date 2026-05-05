@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '@/firebase';
-import { collection, query, orderBy, onSnapshot, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, updateDoc, doc, deleteDoc, addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
 import { useStore, XP_VALUES, calculateLevel, STAT_LABELS } from '@/store/useStore';
-import { handleFirestoreError, OperationType } from '@/firebase';
+import { handleFirestoreError, OperationType, getFCMToken } from '@/firebase';
 import { CheckCircle2, Circle, Trash2, Calendar, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
+import { showLocalNotification } from './NotificationCenter';
 
 interface Task {
   id: string;
@@ -73,6 +74,34 @@ export const Tasks: React.FC = () => {
       const taskRef = doc(db, path);
       const newCompleted = !task.completed;
       await updateDoc(taskRef, { completed: newCompleted });
+
+      // Send notification to other members in shared space
+      if (newCompleted) {
+        // Get space members
+        const membersSnap = await getDocs(collection(db, `spaces/${user.currentSpaceId}/members`));
+        const members = membersSnap.docs.map(d => d.data() as any);
+        const otherMembers = members.filter((m: any) => m.userId !== user.uid);
+        
+        for (const member of otherMembers) {
+          try {
+            await addDoc(collection(db, `users/${member.userId}/notifications`), {
+              title: '✅ Задача выполнена',
+              body: `${user.displayName} завершил задачу: ${task.title}`,
+              type: 'task_reminder',
+              read: false,
+              createdAt: serverTimestamp(),
+              data: { taskId: task.id, spaceId: user.currentSpaceId }
+            });
+            
+            showLocalNotification(
+              '✅ Задача выполнена',
+              `${user.displayName} завершил задачу: ${task.title}`
+            );
+          } catch (e) {
+            console.error('Error sending task completion notification:', e);
+          }
+        }
+      }
 
       if (newCompleted && !task.xpAwarded) {
         const newTotalXP = user.totalXP + task.xpValue;
