@@ -25,11 +25,18 @@ export const AddSheet: React.FC<Props> = ({ type, onClose }) => {
   const [isSaving, setIsSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Check if selected date is in the past (only relevant for tasks)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const checkDate = new Date(selectedDate);
+  checkDate.setHours(0, 0, 0, 0);
+  const isPastDate = type === 'task' && checkDate < today;
+
   // Reset & focus when sheet opens
   useEffect(() => {
     if (type) {
       setValue('');
-      setTimeout(() => inputRef.current?.focus(), 150);
+      if (!isPastDate) setTimeout(() => inputRef.current?.focus(), 150);
     }
   }, [type]);
 
@@ -146,28 +153,38 @@ export const AddSheet: React.FC<Props> = ({ type, onClose }) => {
               </button>
             </div>
 
-            {/* Input */}
-            <div className="flex gap-3 pb-4">
-              <input
-                ref={inputRef}
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={cfg.placeholder}
-                className="flex-1 bg-[#150a24] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder:text-[#8b7ca8]/50 font-display focus:outline-none focus:border-white/30 transition-all"
-              />
-              <button
-                onPointerDown={handleSave}
-                disabled={!value.trim() || isSaving}
-                className="w-12 h-12 rounded-2xl flex items-center justify-center active:scale-95 transition-all disabled:opacity-40 shadow-lg"
-                style={{ backgroundColor: cfg.color }}
-              >
-                {isSaving
-                  ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  : <Plus size={20} className="text-white" strokeWidth={2.5} />
-                }
-              </button>
-            </div>
+            {/* Input or past-date notice */}
+            {isPastDate ? (
+              <div className="flex flex-col items-center py-4 pb-6 gap-2 text-center">
+                <span className="text-3xl">🔒</span>
+                <p className="text-sm font-black text-white font-display">Прошедшая дата</p>
+                <p className="text-xs text-[#8b7ca8] font-display">
+                  Нельзя добавлять задачи в прошлое.<br />Выбери сегодня или будущую дату.
+                </p>
+              </div>
+            ) : (
+              <div className="flex gap-3 pb-4">
+                <input
+                  ref={inputRef}
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={cfg.placeholder}
+                  className="flex-1 bg-[#150a24] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder:text-[#8b7ca8]/50 font-display focus:outline-none focus:border-white/30 transition-all"
+                />
+                <button
+                  onPointerDown={handleSave}
+                  disabled={!value.trim() || isSaving}
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center active:scale-95 transition-all disabled:opacity-40 shadow-lg"
+                  style={{ backgroundColor: cfg.color }}
+                >
+                  {isSaving
+                    ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    : <Plus size={20} className="text-white" strokeWidth={2.5} />
+                  }
+                </button>
+              </div>
+            )}
           </motion.div>
         </>
       )}
