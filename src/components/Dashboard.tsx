@@ -202,22 +202,24 @@ export const Dashboard: React.FC = () => {
   const selectedDateFormatted = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
 
   // Filter tasks by scheduled date
-  const filteredTasks = tasks.filter(t => {
-    // Check if task is scheduled for selected date
+  const allTasksForDate = tasks.filter(t => {
     const taskDate = t.scheduledDate || `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    if (taskDate !== selectedDateFormatted) return false;
-    
-    if (filter === 'active') return !t.completed;
+    return taskDate === selectedDateFormatted;
+  });
+
+  // Apply active/completed filter only for display
+  const filteredTasks = allTasksForDate.filter(t => {
     if (filter === 'completed') return t.completed;
-    return !t.completed;
+    if (filter === 'active') return !t.completed;
+    return true; // 'all'
   });
 
   const displayedTasks = isExpanded ? filteredTasks : filteredTasks.slice(0, 3);
   const hasMoreTasks = filteredTasks.length > 3;
 
-  // Calculate stats for selected date only
-  const completedForSelectedDate = filteredTasks.filter(t => t.completed).length;
-  const totalForSelectedDate = filteredTasks.length;
+  // Calculate stats for selected date only — always use full date set, not filtered
+  const completedForSelectedDate = allTasksForDate.filter(t => t.completed).length;
+  const totalForSelectedDate = allTasksForDate.length;
   const progressPercent = totalForSelectedDate > 0 ? Math.round((completedForSelectedDate / totalForSelectedDate) * 100) : 0;
 
   // Calculate streak (simplified - just count completed tasks)
@@ -346,7 +348,7 @@ export const Dashboard: React.FC = () => {
 
 
         {/* Tasks List or Empty State */}
-        {!isToday && filteredTasks.length === 0 ? (
+        {!isToday && allTasksForDate.length === 0 ? (
           <div className="py-12 text-center">
             <div className="text-6xl mb-4">
               {isPastDate ? '📜' : '📅'}
@@ -360,7 +362,7 @@ export const Dashboard: React.FC = () => {
                 : 'Здесь будут запланированные задачи'}
             </p>
           </div>
-        ) : filteredTasks.length === 0 ? (
+        ) : allTasksForDate.length === 0 ? (
           <div className="py-12 text-center">
             <div className="text-6xl mb-4">✨</div>
             <h3 className="text-lg font-black text-white mb-2 font-display">
@@ -368,6 +370,16 @@ export const Dashboard: React.FC = () => {
             </h3>
             <p className="text-sm text-[#8b7ca8] font-display">
               Добавьте первую задачу на сегодня
+            </p>
+          </div>
+        ) : filteredTasks.length === 0 ? (
+          <div className="py-12 text-center">
+            <div className="text-6xl mb-4">✅</div>
+            <h3 className="text-lg font-black text-white mb-2 font-display">
+              Все выполнено!
+            </h3>
+            <p className="text-sm text-[#8b7ca8] font-display">
+              {completedForSelectedDate} из {totalForSelectedDate} задач завершено
             </p>
           </div>
         ) : (
