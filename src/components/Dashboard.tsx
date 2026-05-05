@@ -293,36 +293,6 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Profile / XP ── */}
-      <div className="bg-[#150a24]/50 border border-white/5 rounded-3xl p-5">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <div className="level-circle w-14 h-14">
-              <div className="level-circle-inner relative">
-                <img src={user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-              </div>
-            </div>
-            <div>
-              <div className="flex items-center gap-2 mb-0.5">
-                <span className="text-sm font-black text-white uppercase font-display">Level {user.level}</span>
-                <span className="text-accent-purple text-xs">💎</span>
-              </div>
-              <div className="text-xl font-black text-white glow-purple font-display">
-                {user.totalXP} <span className="text-xs text-accent-purple">XP</span>
-              </div>
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="text-[10px] text-[#8b7ca8] font-black uppercase tracking-wider font-display mb-1">
-              {xpToNextLevel - user.totalXP} XP до Level {user.level + 1}
-            </div>
-          </div>
-        </div>
-        <div className="status-bar-bg h-1.5">
-          <motion.div initial={{ width: 0 }} animate={{ width: `${xpProgress}%` }} className="status-bar-fill bg-gradient-to-r from-accent-purple to-accent-magenta" />
-        </div>
-      </div>
-
       {/* ── Date heading ── */}
       <div className="flex items-center justify-between px-1">
         <h2 className="text-xl font-black text-white uppercase font-display">
