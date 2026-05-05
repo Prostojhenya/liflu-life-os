@@ -102,16 +102,6 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               <Menu size={18} />
             </button>
 
-            {/* Avatar */}
-            {user && (
-              <button
-                onClick={() => setIsBurgerOpen(true)}
-                className="w-8 h-8 rounded-full overflow-hidden border border-white/10 flex-shrink-0"
-              >
-                <LifluAvatar seed={user.avatarSeed || user.uid} size={32} />
-              </button>
-            )}
-
             {/* Title + date */}
             <div className="flex-1 min-w-0">
               <p className="text-sm font-black text-white uppercase font-display leading-tight">
