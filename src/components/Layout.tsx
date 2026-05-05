@@ -125,8 +125,6 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       <BurgerMenu
         isOpen={isBurgerOpen}
         onClose={() => setIsBurgerOpen(false)}
-        spaceName={currentSpace?.name || 'Personal Space'}
-        spaceType={currentSpace?.type || 'personal'}
         onSpaceSwitch={() => setIsSpaceSwitcherOpen(true)}
       />
 
