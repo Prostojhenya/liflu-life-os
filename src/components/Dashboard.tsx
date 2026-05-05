@@ -2,13 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useStore, XP_VALUES, calculateLevel, STAT_LABELS } from '@/store/useStore';
 import { db, auth, handleFirestoreError, OperationType } from '@/firebase';
 import { collection, query, orderBy, onSnapshot, addDoc, updateDoc, doc, deleteDoc, serverTimestamp, where } from 'firebase/firestore';
-import { Plus, CheckCircle2, Circle, ChevronRight, Flame, Filter } from 'lucide-react';
+import { Plus, CheckCircle2, Circle, ChevronRight, Flame, Filter, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 
 interface Task {
   id: string;
   title: string;
+  type?: 'task' | 'event';
+  eventTime?: string | null;
   statType: 'strength' | 'agility' | 'intelligence' | 'vitality' | 'sense';
   completed: boolean;
   xpAwarded: boolean;
@@ -207,19 +209,23 @@ export const Dashboard: React.FC = () => {
     return taskDate === selectedDateFormatted;
   });
 
-  // Apply active/completed filter only for display
+  // Apply active/completed filter only for display (events always shown)
   const filteredTasks = allTasksForDate.filter(t => {
+    if (t.type === 'event') return true; // events always visible
     if (filter === 'completed') return t.completed;
     if (filter === 'active') return !t.completed;
-    return true; // 'all'
+    return true;
   });
+
+  // Counters only count real tasks (not events)
+  const realTasksForDate = allTasksForDate.filter(t => t.type !== 'event');
 
   const displayedTasks = isExpanded ? filteredTasks : filteredTasks.slice(0, 3);
   const hasMoreTasks = filteredTasks.length > 3;
 
-  // Calculate stats for selected date only — always use full date set, not filtered
-  const completedForSelectedDate = allTasksForDate.filter(t => t.completed).length;
-  const totalForSelectedDate = allTasksForDate.length;
+  // Calculate stats for selected date only — only real tasks, not events
+  const completedForSelectedDate = realTasksForDate.filter(t => t.completed).length;
+  const totalForSelectedDate = realTasksForDate.length;
   const progressPercent = totalForSelectedDate > 0 ? Math.round((completedForSelectedDate / totalForSelectedDate) * 100) : 0;
 
   // Calculate streak (simplified - just count completed tasks)
@@ -392,19 +398,29 @@ export const Dashboard: React.FC = () => {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
                 className={cn(
-                  "bg-[#150a24]/50 border rounded-2xl p-4 transition-all",
-                  task.completed 
-                    ? "border-accent-blue/30 bg-accent-blue/5" 
-                    : "border-white/5 hover:border-white/10"
+                  "border rounded-2xl p-4 transition-all",
+                  task.type === 'event'
+                    ? "bg-[#f59e0b]/5 border-[#f59e0b]/20"
+                    : task.completed
+                      ? "bg-accent-blue/5 border-accent-blue/30 bg-[#150a24]/50"
+                      : "bg-[#150a24]/50 border-white/5 hover:border-white/10"
                 )}
-                onClick={() => toggleTask(task)}
+                onClick={() => task.type !== 'event' ? toggleTask(task) : undefined}
               >
                 <div className="flex items-center gap-4">
                   <div className={cn(
                     "w-6 h-6 rounded-lg flex items-center justify-center transition-all flex-shrink-0",
-                    task.completed ? "bg-accent-blue text-white" : "bg-white/5 text-[#8b7ca8]"
+                    task.type === 'event'
+                      ? "bg-[#f59e0b]/20 text-[#f59e0b]"
+                      : task.completed
+                        ? "bg-accent-blue text-white"
+                        : "bg-white/5 text-[#8b7ca8]"
                   )}>
-                    {task.completed ? <CheckCircle2 size={16} strokeWidth={3} /> : <Circle size={16} />}
+                    {task.type === 'event'
+                      ? <Clock size={14} />
+                      : task.completed
+                        ? <CheckCircle2 size={16} strokeWidth={3} />
+                        : <Circle size={16} />}
                   </div>
                   
                   <div className="flex-1 min-w-0">
@@ -415,17 +431,35 @@ export const Dashboard: React.FC = () => {
                       {task.title}
                     </div>
                     <div className="flex items-center gap-2">
-                      <div 
-                        className="w-2 h-2 rounded-full" 
-                        style={{ backgroundColor: STAT_COLORS[task.statType] }}
-                      />
-                      <span className="text-[10px] font-black uppercase tracking-wider font-display" style={{ color: STAT_COLORS[task.statType] }}>
-                        {STAT_LABELS[task.statType]}
-                      </span>
+                      {task.type === 'event' ? (
+                        <>
+                          <span className="text-[10px] font-black uppercase tracking-wider font-display text-[#f59e0b]">
+                            Событие
+                          </span>
+                          {task.eventTime && (
+                            <>
+                              <span className="text-[#6b7280] text-[10px]">·</span>
+                              <span className="text-[10px] font-bold font-display text-[#f59e0b]">
+                                {task.eventTime}
+                              </span>
+                            </>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <div 
+                            className="w-2 h-2 rounded-full" 
+                            style={{ backgroundColor: STAT_COLORS[task.statType] }}
+                          />
+                          <span className="text-[10px] font-black uppercase tracking-wider font-display" style={{ color: STAT_COLORS[task.statType] }}>
+                            {STAT_LABELS[task.statType]}
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
 
-                  {task.completed && (
+                  {task.type !== 'event' && task.completed && (
                     <motion.div
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
@@ -434,7 +468,7 @@ export const Dashboard: React.FC = () => {
                       +{task.xpValue} XP
                     </motion.div>
                   )}
-                  {!task.completed && (
+                  {task.type !== 'event' && !task.completed && (
                     <div className="text-[#8b7ca8] font-black text-xs font-display">
                       {task.xpValue} XP
                     </div>
