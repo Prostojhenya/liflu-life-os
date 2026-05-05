@@ -1,226 +1,259 @@
 import React, { useState, useEffect } from 'react';
-import { db, auth, handleFirestoreError, OperationType } from '@/firebase';
-import { collection, query, where, onSnapshot, addDoc, updateDoc, doc, deleteDoc, serverTimestamp, orderBy } from 'firebase/firestore';
+import { db } from '@/firebase';
+import { collection, query, orderBy, onSnapshot, updateDoc, doc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { useStore, XP_VALUES, calculateLevel, STAT_LABELS } from '@/store/useStore';
-import { Plus, CheckCircle2, Circle, Trash2, Calendar } from 'lucide-react';
+import { handleFirestoreError, OperationType } from '@/firebase';
+import { CheckCircle2, Circle, Trash2, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 
 interface Task {
   id: string;
   title: string;
+  statType: 'strength' | 'agility' | 'intelligence' | 'vitality' | 'sense';
   completed: boolean;
+  xpAwarded: boolean;
   xpValue: number;
-  spaceId: string;
-  xpAwarded?: boolean;
-  statType?: 'strength' | 'agility' | 'intelligence' | 'vitality' | 'sense';
+  createdAt: any;
+  scheduledDate?: string;
 }
+
+const STAT_COLORS = {
+  strength: '#ef4444',
+  agility: '#f59e0b',
+  intelligence: '#8B5CF6',
+  vitality: '#10b981',
+  sense: '#3B82F6',
+};
+
+const formatDate = (dateStr: string) => {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+
+  if (date.toDateString() === today.toDateString()) return 'Сегодня';
+  if (date.toDateString() === tomorrow.toDateString()) return 'Завтра';
+  if (date.toDateString() === yesterday.toDateString()) return 'Вчера';
+  return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+};
+
+const todayStr = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
 export const Tasks: React.FC = () => {
   const { user, setUser } = useStore();
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [newTask, setNewTask] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAdding, setIsAdding] = useState(false);
-
-  // AI временно отключен
-  // const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const [filter, setFilter] = useState<'active' | 'all'>('active');
 
   useEffect(() => {
     if (!user?.currentSpaceId) return;
-
-    const path = `spaces/${user.currentSpaceId}/tasks`;
     const q = query(
-      collection(db, path),
-      orderBy('createdAt', 'desc')
+      collection(db, `spaces/${user.currentSpaceId}/tasks`),
+      orderBy('scheduledDate', 'asc'),
     );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const taskData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Task));
-      setTasks(taskData);
-      setIsLoading(false);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, path);
+    return onSnapshot(q, (snap) => {
+      setTasks(snap.docs.map(d => ({ id: d.id, ...d.data() } as Task)));
     });
-
-    return () => unsubscribe();
   }, [user?.currentSpaceId]);
-
-  const addTask = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTask.trim() || !user?.currentSpaceId || isAdding) return;
-
-    setIsAdding(true);
-    const path = `spaces/${user.currentSpaceId}/tasks`;
-    try {
-      // AI классификация временно отключена - используем intelligence по умолчанию
-      const finalStat = 'intelligence';
-
-      /* AI код закомментирован
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: `Проанализируй задачу пользователя: "${newTask}".
-        Классифицируй её в одну из категорий для развития личности:
-        - strength: физическая активность, спорт, нагрузки.
-        - agility: быстрая реакция, скорость выполнения, мелкая моторика.
-        - intelligence: обучение, интеллектуальная работа, чтение, логика.
-        - vitality: восстановление, здоровье, сон, питание.
-        - sense: бытовые задачи, организация, планирование, социальное.
-        
-        Верни ТОЛЬКО английское название категории (например: intelligence).`
-      });
-      
-      const classifiedStat = response.text?.toLowerCase().trim() as any;
-      const finalStat = ['strength', 'agility', 'intelligence', 'vitality', 'sense'].includes(classifiedStat) 
-        ? classifiedStat 
-        : 'intelligence';
-      */
-
-      await addDoc(collection(db, path), {
-        title: newTask,
-        statType: finalStat,
-        completed: false,
-        xpAwarded: false,
-        xpValue: XP_VALUES.TASK,
-        spaceId: user.currentSpaceId,
-        createdAt: serverTimestamp(),
-      });
-      setNewTask('');
-    } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, path);
-    } finally {
-      setIsAdding(false);
-    }
-  };
 
   const toggleTask = async (task: Task) => {
     if (!user?.currentSpaceId) return;
     const path = `spaces/${user.currentSpaceId}/tasks/${task.id}`;
     const userRef = doc(db, 'users', user.uid);
-    
     try {
       const taskRef = doc(db, path);
-      const newCompletedState = !task.completed;
-      
-      const updateData: any = { completed: newCompletedState };
-      let finalXpAwarded = task.xpAwarded;
+      const newCompleted = !task.completed;
+      await updateDoc(taskRef, { completed: newCompleted });
 
-      // Award XP only if checking as completed AND not already awarded
-      if (newCompletedState && !task.xpAwarded) {
-        updateData.xpAwarded = true;
-        finalXpAwarded = true;
-        
-        const newXP = (user.totalXP || 0) + (task.xpValue || XP_VALUES.TASK);
-        const statToIncrement = task.statType || 'intelligence';
-        const newStats = { 
-          ...user.stats, 
-          [statToIncrement]: (user.stats[statToIncrement] || 0) + 1 
-        };
-
-        await updateDoc(userRef, { 
-          totalXP: newXP,
-          level: calculateLevel(newXP),
-          stats: newStats
-        });
-        
-        setUser({
-          ...user,
-          totalXP: newXP,
-          level: calculateLevel(newXP),
-          stats: newStats
-        });
+      if (newCompleted && !task.xpAwarded) {
+        const newTotalXP = user.totalXP + task.xpValue;
+        const newLevel = calculateLevel(newTotalXP);
+        const newStats = { ...user.stats };
+        newStats[task.statType] = (newStats[task.statType] || 0) + 1;
+        await updateDoc(userRef, { totalXP: newTotalXP, level: newLevel, stats: newStats });
+        await updateDoc(taskRef, { xpAwarded: true });
+        setUser({ ...user, totalXP: newTotalXP, level: newLevel, stats: newStats });
       }
-
-      await updateDoc(taskRef, updateData);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, path);
     }
   };
 
-  const deleteTask = async (taskId: string) => {
+  const deleteTask = async (id: string) => {
     if (!user?.currentSpaceId) return;
-    const path = `spaces/${user.currentSpaceId}/tasks/${taskId}`;
-    try {
-      await deleteDoc(doc(db, path));
-    } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, path);
-    }
+    await deleteDoc(doc(db, `spaces/${user.currentSpaceId}/tasks`, id));
   };
 
+  if (!user) return null;
+
+  const today = todayStr();
+
+  // Apply filter
+  const visibleTasks = tasks.filter(t => {
+    if (filter === 'active') return !t.completed;
+    return true;
+  });
+
+  // Group by date
+  const groups: Record<string, Task[]> = {};
+  for (const task of visibleTasks) {
+    const key = task.scheduledDate || today;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(task);
+  }
+  const sortedDates = Object.keys(groups).sort();
+
+  const totalTasks = tasks.length;
+  const completedTasks = tasks.filter(t => t.completed).length;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 pb-28">
       <header>
-        <h2 className="text-3xl font-black italic tracking-tighter uppercase glow-purple font-display">Текущие Квесты</h2>
-        <p className="text-[#8b7ca8] text-[10px] font-black uppercase tracking-[0.2em] font-display">Выполняй задания для получения XP</p>
+        <h2 className="text-3xl font-black italic tracking-tighter uppercase glow-purple font-display">
+          Все задачи
+        </h2>
+        <p className="text-[#8b7ca8] text-[10px] font-black uppercase tracking-[0.2em] font-display">
+          {completedTasks}/{totalTasks} выполнено
+        </p>
       </header>
 
-
-
-      <div className="space-y-4">
-        <AnimatePresence mode="popLayout">
-          {tasks.map((task) => (
-            <motion.div
-              key={task.id}
-              layout
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              className={cn(
-                "bento-card flex items-center justify-between shadow-xl transition-all gaming-border",
-                task.completed ? "opacity-40 grayscale-[0.5] border-white/5" : "border-accent-purple/20"
-              )}
-            >
-              <div className="flex items-center gap-4 flex-1">
-                <button 
-                  onClick={() => toggleTask(task)}
-                  className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center transition-all border-2",
-                    task.completed 
-                      ? "bg-accent-magenta border-accent-magenta text-white shadow-[0_0_8px_#ff00d4]" 
-                      : "bg-[#0b0416] border-white/10 text-[#8b7ca8] hover:border-accent-magenta/50"
-                  )}
-                >
-                  {task.completed ? <CheckCircle2 size={16} /> : <Circle size={16} />}
-                </button>
-                <div>
-                  <h4 className={cn(
-                    "font-black uppercase italic tracking-tight transition-all text-sm font-display",
-                    task.completed ? "text-[#8b7ca8] line-through" : "text-white"
-                  )}>
-                    {task.title}
-                  </h4>
-                  <div className="flex items-center gap-2 mt-1">
-                    <p className="text-[8px] font-black text-accent-magenta uppercase tracking-widest font-display">
-                      +{task.xpValue || XP_VALUES.TASK} XP НАГРАДА
-                    </p>
-                    <div className="w-[1px] h-2 bg-white/10" />
-                    <p className="text-[8px] font-black text-accent-purple uppercase tracking-widest font-display">
-                      {STAT_LABELS[task.statType || 'intelligence']} +1
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <button 
-                  onClick={() => deleteTask(task.id)}
-                  className="text-[#8b7ca8] hover:text-accent-red transition-colors p-2"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-        
-        {!isLoading && tasks.length === 0 && (
-          <div className="text-center py-20 bg-[#150a24]/30 rounded-[2rem] border border-dashed border-white/5">
-            <div className="w-16 h-16 bg-[#1b0e2b] rounded-full flex items-center justify-center mx-auto mb-4 text-[#8b7ca8] shadow-inner">
-              <Calendar size={32} />
-            </div>
-            <p className="text-[#8b7ca8] text-[10px] font-black uppercase tracking-widest font-display">Нет активных квестов в логе</p>
-          </div>
-        )}
+      {/* Filter toggle */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setFilter('active')}
+          className={cn(
+            'px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all border',
+            filter === 'active'
+              ? 'bg-accent-purple/10 border-accent-purple/30 text-accent-purple'
+              : 'bg-[#150a24] border-white/5 text-[#6b7280]'
+          )}
+        >
+          Активные
+        </button>
+        <button
+          onClick={() => setFilter('all')}
+          className={cn(
+            'px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all border',
+            filter === 'all'
+              ? 'bg-accent-purple/10 border-accent-purple/30 text-accent-purple'
+              : 'bg-[#150a24] border-white/5 text-[#6b7280]'
+          )}
+        >
+          Все
+        </button>
       </div>
+
+      {/* Task groups */}
+      {sortedDates.length === 0 ? (
+        <div className="py-16 text-center">
+          <div className="text-5xl mb-4">
+            {filter === 'active' ? '✅' : '📋'}
+          </div>
+          <h3 className="text-lg font-black text-white mb-2 font-display">
+            {filter === 'active' ? 'Все выполнено!' : 'Нет задач'}
+          </h3>
+          <p className="text-sm text-[#8b7ca8] font-display">
+            {filter === 'active'
+              ? 'Зажми иконку задач в навигации чтобы добавить'
+              : 'Зажми иконку задач в навигации чтобы добавить'}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-5">
+          {sortedDates.map(dateKey => (
+            <div key={dateKey}>
+              {/* Date header */}
+              <div className="flex items-center gap-2 mb-2 px-1">
+                <Calendar size={12} className="text-[#8b7ca8]" />
+                <span className={cn(
+                  'text-[10px] font-black uppercase tracking-wider font-display',
+                  dateKey === today ? 'text-accent-purple' : 'text-[#8b7ca8]'
+                )}>
+                  {formatDate(dateKey)}
+                </span>
+                <div className="flex-1 h-px bg-white/5" />
+                <span className="text-[10px] text-[#6b7280] font-display">
+                  {groups[dateKey].filter(t => t.completed).length}/{groups[dateKey].length}
+                </span>
+              </div>
+
+              {/* Tasks */}
+              <div className="space-y-2">
+                <AnimatePresence>
+                  {groups[dateKey].map(task => (
+                    <motion.div
+                      key={task.id}
+                      initial={{ opacity: 0, x: -16 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 16 }}
+                      className={cn(
+                        'bg-[#150a24]/50 border rounded-2xl p-3.5 flex items-center gap-3 transition-all',
+                        task.completed
+                          ? 'border-white/5 opacity-60'
+                          : 'border-white/5 hover:border-white/10'
+                      )}
+                    >
+                      <button
+                        onClick={() => toggleTask(task)}
+                        className={cn(
+                          'w-6 h-6 rounded-lg flex items-center justify-center transition-all flex-shrink-0',
+                          task.completed ? 'bg-accent-blue text-white' : 'bg-white/5 text-[#8b7ca8]'
+                        )}
+                      >
+                        {task.completed
+                          ? <CheckCircle2 size={14} strokeWidth={3} />
+                          : <Circle size={14} />}
+                      </button>
+
+                      <div className="flex-1 min-w-0">
+                        <div className={cn(
+                          'text-sm font-bold text-white font-display truncate',
+                          task.completed && 'line-through opacity-50'
+                        )}>
+                          {task.title}
+                        </div>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <div
+                            className="w-1.5 h-1.5 rounded-full"
+                            style={{ backgroundColor: STAT_COLORS[task.statType] }}
+                          />
+                          <span
+                            className="text-[9px] font-black uppercase tracking-wider font-display"
+                            style={{ color: STAT_COLORS[task.statType] }}
+                          >
+                            {STAT_LABELS[task.statType]}
+                          </span>
+                        </div>
+                      </div>
+
+                      <span className={cn(
+                        'text-xs font-black font-display flex-shrink-0',
+                        task.completed ? 'text-accent-blue' : 'text-[#8b7ca8]'
+                      )}>
+                        {task.completed ? '+' : ''}{task.xpValue} XP
+                      </span>
+
+                      <button
+                        onClick={() => deleteTask(task.id)}
+                        className="text-[#6b7280] hover:text-red-400 transition-colors flex-shrink-0 p-1"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
