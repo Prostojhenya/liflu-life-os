@@ -35,6 +35,20 @@ service cloud.firestore {
         && request.resource.data.read == false;
     }
 
+    function isMessageNotification(userId) {
+      let convId = request.resource.data.data.conversationId;
+      return isSignedIn()
+        && convId is string
+        && exists(/databases/$(database)/documents/conversations/$(convId))
+        && get(/databases/$(database)/documents/conversations/$(convId)).data.participants.hasAny([uid()])
+        && get(/databases/$(database)/documents/conversations/$(convId)).data.participants.hasAny([userId])
+        && request.resource.data.keys().hasOnly(['title', 'body', 'type', 'read', 'createdAt', 'data'])
+        && request.resource.data.title is string
+        && request.resource.data.body is string
+        && request.resource.data.type == 'message'
+        && request.resource.data.read == false;
+    }
+
     // ===============================================================
     // Users
     // ===============================================================
@@ -134,7 +148,8 @@ service cloud.firestore {
       allow read:   if isSignedIn() && userId == uid();
       allow create: if isSignedIn() && (
         userId == uid() ||
-        isNotificationForSpaceMember(userId)
+        isNotificationForSpaceMember(userId) ||
+        isMessageNotification(userId)
       );
       allow update: if isSignedIn() && userId == uid();
       allow delete: if isSignedIn() && userId == uid();
