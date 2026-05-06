@@ -2,7 +2,7 @@ export interface AppNotification {
   id: string;
   title: string;
   body: string;
-  type: 'task_reminder' | 'habit_reminder' | 'achievement' | 'streak' | 'system';
+  type: 'task_reminder' | 'habit_reminder' | 'achievement' | 'streak' | 'system' | 'message';
   read: boolean;
   createdAt: Date;
   data?: Record<string, any>;

@@ -64,7 +64,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   }, []);
 
   const isChat = activeTab === 'chat';
-  const hideNav = isChat && keyboardOpen;
+  const hideNav = (isChat && keyboardOpen) || isBurgerOpen;
 
   return (
     <div className="flex flex-col bg-[#0b0416] text-white font-sans overflow-hidden" style={{ height: '100dvh' }}>

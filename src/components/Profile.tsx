@@ -76,7 +76,7 @@ export const Profile: React.FC = () => {
   return (
     <div className="space-y-3 pb-32">
       {/* Header */}
-      <div className="flex justify-between items-center px-5 pt-1.5 pb-3.5">
+      <div className="flex justify-between items-center px-5 pt-3.5 pb-3.5">
         <div className="text-2xl font-extrabold tracking-tight" style={{ fontFamily: 'Syne, sans-serif', letterSpacing: '-0.5px' }}>
           Профиль
         </div>

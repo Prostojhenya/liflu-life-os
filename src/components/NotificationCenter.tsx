@@ -43,7 +43,7 @@ export const showLocalNotification = (title: string, body: string, icon?: string
 };
 
 export const NotificationCenter: React.FC = () => {
-  const { user } = useStore();
+  const { user, setActiveTab } = useStore();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [permissionGranted, setPermissionGranted] = useState(false);
@@ -78,20 +78,29 @@ export const NotificationCenter: React.FC = () => {
   useEffect(() => {
     if (!user?.uid) return;
     
+    console.log('Setting up notifications listener for user:', user.uid);
+    
     const q = query(
       collection(db, `users/${user.uid}/notifications`),
       orderBy('createdAt', 'desc')
     );
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      console.log('Notifications snapshot received, docs count:', snapshot.docs.length);
+      
       const notifs = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
         createdAt: doc.data().createdAt?.toDate() || new Date()
       })) as AppNotification[];
 
+      console.log('Parsed notifications:', notifs);
+
       if (initialSnapshotLoadedRef.current) {
+        console.log('Processing doc changes...');
         snapshot.docChanges().forEach((change) => {
+          console.log('Doc change type:', change.type, 'doc:', change.doc.id);
+          
           if (change.type !== 'added') return;
 
           const notification = {
@@ -100,11 +109,15 @@ export const NotificationCenter: React.FC = () => {
             createdAt: change.doc.data().createdAt?.toDate() || new Date()
           } as AppNotification;
 
+          console.log('New notification added:', notification);
+
           if (!notification.read) {
+            console.log('Showing local notification for:', notification.title);
             showLocalNotification(notification.title, notification.body);
           }
         });
       } else {
+        console.log('Initial snapshot loaded, skipping notifications');
         initialSnapshotLoadedRef.current = true;
       }
 
@@ -144,7 +157,28 @@ export const NotificationCenter: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Mark notification as read
+  // Mark notification as read and handle click
+  const handleNotificationClick = async (notification: AppNotification) => {
+    if (!user?.uid) return;
+    
+    // Mark as read
+    try {
+      await updateDoc(doc(db, `users/${user.uid}/notifications/${notification.id}`), {
+        read: true
+      });
+    } catch (e) {
+      console.error('Error marking notification as read:', e);
+    }
+
+    // Handle message notifications - open chat
+    if (notification.type === 'message' && notification.data?.conversationId) {
+      setActiveTab('chat');
+      setIsOpen(false);
+      // The chat component will handle opening the conversation
+    }
+  };
+
+  // Mark notification as read (legacy - kept for compatibility)
   const markAsRead = async (notificationId: string) => {
     if (!user?.uid) return;
     try {
@@ -219,6 +253,7 @@ export const NotificationCenter: React.FC = () => {
       case 'habit_reminder': return '🔥';
       case 'achievement': return '🏆';
       case 'streak': return '⚡';
+      case 'message': return '💬';
       default: return '🔔';
     }
   };
@@ -320,7 +355,7 @@ export const NotificationCenter: React.FC = () => {
                         'p-3 hover:bg-white/5 transition-colors cursor-pointer',
                         !notification.read && 'bg-accent-purple/5'
                       )}
-                      onClick={() => markAsRead(notification.id)}
+                      onClick={() => handleNotificationClick(notification)}
                     >
                       <div className="flex items-start gap-3">
                         <span className="text-lg flex-shrink-0">
@@ -383,11 +418,15 @@ export const addNotification = async (
   notification: Omit<AppNotification, 'id' | 'createdAt' | 'read'>
 ) => {
   try {
-    await addDoc(collection(db, `users/${userId}/notifications`), {
+    console.log('addNotification called for user:', userId, 'notification:', notification);
+    
+    const docRef = await addDoc(collection(db, `users/${userId}/notifications`), {
       ...notification,
       read: false,
       createdAt: serverTimestamp()
     });
+    
+    console.log('Notification added with ID:', docRef.id);
   } catch (e) {
     console.error('Error adding notification:', e);
   }

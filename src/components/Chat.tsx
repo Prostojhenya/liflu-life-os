@@ -10,6 +10,7 @@ import { Send, Plus, Users, Search, Check } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { useChatHeader } from '@/store/chatHeaderContext';
+import { createMessageNotification } from '@/lib/notifications';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -313,6 +314,25 @@ export const Chat: React.FC = () => {
         lastMessage: text,
         lastMessageAt: serverTimestamp(),
       });
+
+      // Create notifications for other participants
+      if (activeConv.participants && activeConv.participants.length > 0) {
+        console.log('Creating message notifications for participants:', activeConv.participants);
+        console.log('Sender:', user.uid, user.displayName);
+        console.log('Message:', text);
+        
+        await createMessageNotification(
+          activeConv.id,
+          user.uid,
+          user.displayName || 'Пользователь',
+          text,
+          activeConv.participants
+        );
+        
+        console.log('Message notifications created');
+      } else {
+        console.log('No participants found for notifications');
+      }
     } catch (err) {
       console.error('Send error:', err);
     } finally {

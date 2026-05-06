@@ -125,3 +125,48 @@ export const createHabitReminder = async (userId: string, habitId: string, habit
     reminderTime
   );
 };
+
+// Create message notification for conversation participants
+export const createMessageNotification = async (
+  conversationId: string,
+  senderId: string,
+  senderName: string,
+  messageText: string,
+  participantIds: string[]
+) => {
+  try {
+    console.log('createMessageNotification called with:', {
+      conversationId,
+      senderId,
+      senderName,
+      messageText,
+      participantIds
+    });
+    
+    // Send notification to all participants except the sender
+    const recipients = participantIds.filter(id => id !== senderId);
+    
+    console.log('Recipients (excluding sender):', recipients);
+    
+    for (const recipientId of recipients) {
+      console.log('Creating notification for recipient:', recipientId);
+      
+      await addNotification(recipientId, {
+        title: `💬 ${senderName}`,
+        body: messageText.length > 100 ? messageText.substring(0, 100) + '...' : messageText,
+        type: 'message',
+        data: {
+          conversationId,
+          senderId,
+          senderName,
+        }
+      });
+      
+      console.log('Notification created for:', recipientId);
+    }
+    
+    console.log('All message notifications created successfully');
+  } catch (e) {
+    console.error('Error creating message notification:', e);
+  }
+};
