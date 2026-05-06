@@ -89,7 +89,11 @@ export const Tasks: React.FC = () => {
               type: 'task_reminder',
               read: false,
               createdAt: serverTimestamp(),
-              data: { taskId: task.id, spaceId: user.currentSpaceId }
+              data: {
+                taskId: task.id,
+                spaceId: user.currentSpaceId,
+                actorId: user.uid,
+              }
             });
           } catch (e) {
             console.error('Error sending task completion notification:', e);

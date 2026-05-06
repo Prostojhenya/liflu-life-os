@@ -49,6 +49,7 @@ export const NotificationCenter: React.FC = () => {
   const [permissionGranted, setPermissionGranted] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const bellRef = useRef<HTMLButtonElement>(null);
+  const initialSnapshotLoadedRef = useRef(false);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -74,25 +75,31 @@ export const NotificationCenter: React.FC = () => {
         ...doc.data(),
         createdAt: doc.data().createdAt?.toDate() || new Date()
       })) as AppNotification[];
-      
-      // Check for new notifications and show push
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === 'added' && !change.doc.data().read) {
-          const notif = change.doc.data();
-          // Only show notification if app is not focused
-          if (document.hidden || !document.hasFocus()) {
-            showLocalNotification(
-              notif.title || 'Liflu',
-              notif.body || ''
-            );
+
+      if (initialSnapshotLoadedRef.current) {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type !== 'added') return;
+
+          const notification = {
+            id: change.doc.id,
+            ...change.doc.data(),
+            createdAt: change.doc.data().createdAt?.toDate() || new Date()
+          } as AppNotification;
+
+          if (!notification.read) {
+            showLocalNotification(notification.title, notification.body);
           }
-        }
-      });
-      
+        });
+      } else {
+        initialSnapshotLoadedRef.current = true;
+      }
+
       setNotifications(notifs);
     });
-    
-    return unsubscribe;
+    return () => {
+      initialSnapshotLoadedRef.current = false;
+      unsubscribe();
+    };
   }, [user?.uid]);
 
   // Listen for FCM messages

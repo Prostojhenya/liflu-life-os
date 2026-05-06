@@ -22,6 +22,19 @@ service cloud.firestore {
       return isSignedIn() && get(/databases/$(database)/documents/spaces/$(spaceId)).data.ownerId == uid();
     }
 
+    function isNotificationForSpaceMember(userId) {
+      let spaceId = request.resource.data.data.spaceId;
+      return isSignedIn()
+        && spaceId is string
+        && isMember(spaceId)
+        && exists(/databases/$(database)/documents/spaces/$(spaceId)/members/$(userId))
+        && request.resource.data.keys().hasOnly(['title', 'body', 'type', 'read', 'createdAt', 'data'])
+        && request.resource.data.title is string
+        && request.resource.data.body is string
+        && request.resource.data.type in ['task_reminder', 'habit_reminder', 'achievement', 'streak', 'system']
+        && request.resource.data.read == false;
+    }
+
     // ===============================================================
     // Users
     // ===============================================================
@@ -119,7 +132,10 @@ service cloud.firestore {
     // ===============================================================
     match /users/{userId}/notifications/{notificationId} {
       allow read:   if isSignedIn() && userId == uid();
-      allow create: if isSignedIn() && userId == uid();
+      allow create: if isSignedIn() && (
+        userId == uid() ||
+        isNotificationForSpaceMember(userId)
+      );
       allow update: if isSignedIn() && userId == uid();
       allow delete: if isSignedIn() && userId == uid();
     }

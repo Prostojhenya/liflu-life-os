@@ -186,7 +186,11 @@ export const Dashboard: React.FC = () => {
               type: 'task_reminder',
               read: false,
               createdAt: serverTimestamp(),
-              data: { taskId: task.id, spaceId: user.currentSpaceId }
+              data: {
+                taskId: task.id,
+                spaceId: user.currentSpaceId,
+                actorId: user.uid,
+              }
             });
           } catch (e) {
             console.error('Error sending task completion notification:', e);
@@ -228,7 +232,7 @@ export const Dashboard: React.FC = () => {
               type: 'habit_reminder',
               read: false,
               createdAt: serverTimestamp(),
-              data: { habitId: habit.id, spaceId: user.currentSpaceId }
+              data: { habitId: habit.id, spaceId: user.currentSpaceId, actorId: user.uid }
             });
           } catch (e) {
             console.error('Error sending habit completion notification:', e);
