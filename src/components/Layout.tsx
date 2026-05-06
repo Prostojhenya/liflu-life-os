@@ -113,20 +113,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               </p>
             </div>
 
-            {/* Today progress pill */}
-            {user && todayProgress.total > 0 && (
-              <div className="flex items-center gap-1.5 bg-white/5 rounded-xl px-2.5 py-1.5 flex-shrink-0 w-[72px]">
-                <div className="w-8 h-1 bg-white/10 rounded-full overflow-hidden flex-shrink-0">
-                  <div
-                    className="h-full bg-accent-blue rounded-full transition-all"
-                    style={{ width: `${Math.round((todayProgress.done / todayProgress.total) * 100)}%` }}
-                  />
-                </div>
-                <span className="text-[10px] font-black text-[#8b7ca8] font-display whitespace-nowrap flex-1 text-right">
-                  {todayProgress.done}/{todayProgress.total}
-                </span>
-              </div>
-            )}
+
 
             {/* XP pill */}
             {user && (
