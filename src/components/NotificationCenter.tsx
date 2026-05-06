@@ -418,16 +418,21 @@ export const addNotification = async (
   notification: Omit<AppNotification, 'id' | 'createdAt' | 'read'>
 ) => {
   try {
-    console.log('addNotification called for user:', userId, 'notification:', notification);
-    
-    const docRef = await addDoc(collection(db, `users/${userId}/notifications`), {
+    const dataToWrite = {
       ...notification,
       read: false,
       createdAt: serverTimestamp()
-    });
+    };
+    
+    console.log('addNotification called for user:', userId);
+    console.log('Data to write:', JSON.stringify(dataToWrite, null, 2));
+    console.log('Data keys:', Object.keys(dataToWrite));
+    
+    const docRef = await addDoc(collection(db, `users/${userId}/notifications`), dataToWrite);
     
     console.log('Notification added with ID:', docRef.id);
   } catch (e) {
     console.error('Error adding notification:', e);
+    console.error('Error details:', e);
   }
 };

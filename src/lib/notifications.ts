@@ -151,16 +151,20 @@ export const createMessageNotification = async (
     for (const recipientId of recipients) {
       console.log('Creating notification for recipient:', recipientId);
       
-      await addNotification(recipientId, {
+      const notificationData = {
         title: `💬 ${senderName}`,
         body: messageText.length > 100 ? messageText.substring(0, 100) + '...' : messageText,
-        type: 'message',
+        type: 'message' as const,
         data: {
           conversationId,
           senderId,
           senderName,
         }
-      });
+      };
+      
+      console.log('Notification data:', notificationData);
+      
+      await addNotification(recipientId, notificationData);
       
       console.log('Notification created for:', recipientId);
     }

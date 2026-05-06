@@ -36,17 +36,14 @@ service cloud.firestore {
     }
 
     function isMessageNotification(userId) {
-      let convId = request.resource.data.data.conversationId;
       return isSignedIn()
-        && convId is string
-        && exists(/databases/$(database)/documents/conversations/$(convId))
-        && get(/databases/$(database)/documents/conversations/$(convId)).data.participants.hasAny([uid()])
-        && get(/databases/$(database)/documents/conversations/$(convId)).data.participants.hasAny([userId])
-        && request.resource.data.keys().hasOnly(['title', 'body', 'type', 'read', 'createdAt', 'data'])
-        && request.resource.data.title is string
-        && request.resource.data.body is string
         && request.resource.data.type == 'message'
-        && request.resource.data.read == false;
+        && request.resource.data.read == false
+        && 'data' in request.resource.data
+        && 'conversationId' in request.resource.data.data
+        && request.resource.data.data.conversationId is string
+        && exists(/databases/$(database)/documents/conversations/$(request.resource.data.data.conversationId))
+        && get(/databases/$(database)/documents/conversations/$(request.resource.data.data.conversationId)).data.participants.hasAny([uid(), userId]);
     }
 
     // ===============================================================
