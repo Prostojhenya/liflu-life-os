@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { auth, db, signInWithGoogle, handleFirestoreError, OperationType, initMessaging } from './firebase';
-import { requestNotificationPermission } from './components/NotificationCenter';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useStore, calculateLevel, INITIAL_STATS } from './store/useStore';
@@ -135,10 +134,9 @@ export default function App() {
                 level: calculateLevel(userData.totalXP || 0)
               } as any);
               
-              // Initialize messaging for push notifications
-              initMessaging().then(() => {
-                requestNotificationPermission();
-              });
+              // Initialize messaging. Permission must be requested from a user click,
+              // so NotificationCenter handles the opt-in flow.
+              initMessaging();
             } catch (error) {
               console.error("Auth initialization error:", error);
               setError("Ошибка инициализации пользователя");

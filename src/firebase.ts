@@ -13,6 +13,17 @@ export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);
 
 // Messaging setup
 let messagingInstance: ReturnType<typeof getMessaging> | null = null;
+let messagingRegistration: ServiceWorkerRegistration | null = null;
+
+const getMessagingRegistration = async () => {
+  if (messagingRegistration) return messagingRegistration;
+  if (!('serviceWorker' in navigator)) return null;
+
+  messagingRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+    scope: '/firebase-cloud-messaging-push-scope',
+  });
+  return messagingRegistration;
+};
 
 export const initMessaging = async () => {
   try {
@@ -37,7 +48,8 @@ export const getFCMToken = async (): Promise<string | null> => {
   
   try {
     const token = await getToken(messagingInstance, {
-      vapidKey: (import.meta as any).env?.VITE_FIREBASE_VAPID_KEY || ''
+      vapidKey: (import.meta as any).env?.VITE_FIREBASE_VAPID_KEY || '',
+      serviceWorkerRegistration: await getMessagingRegistration() || undefined,
     });
     return token;
   } catch (e) {

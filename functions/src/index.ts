@@ -1,179 +1,69 @@
-import * as functions from 'firebase-functions';
-import * as admin from 'firebase-admin';
+import { initializeApp } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import { getMessaging } from 'firebase-admin/messaging';
+import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 
-// Initialize Firebase Admin
-admin.initializeApp();
+const DATABASE_ID = 'ai-studio-7c012fdc-8d48-450f-84a0-26b51c2c1a57';
 
-const db = admin.firestore();
+initializeApp();
 
-// Listen for new notifications and send push notifications
-export const sendPushNotification = functions.firestore
-  .document('users/{userId}/notifications/{notificationId}')
-  .onCreate(async (snap, context) => {
-    const notification = snap.data();
-    const userId = context.params.userId;
+const db = getFirestore(DATABASE_ID);
+const messaging = getMessaging();
+
+export const sendPushNotification = onDocumentCreated(
+  {
+    document: 'users/{userId}/notifications/{notificationId}',
+    database: DATABASE_ID,
+    region: 'us-central1',
+  },
+  async (event) => {
+    const notification = event.data?.data();
+    const userId = event.params.userId;
+
+    if (!notification) return;
+
+    const userDoc = await db.collection('users').doc(userId).get();
+    const userData = userDoc.data();
+    const token = userData?.fcmToken;
+
+    if (!token || userData?.notificationsEnabled === false) {
+      console.log('No enabled FCM token for user:', userId);
+      return;
+    }
 
     try {
-      // Get user's FCM token
-      const userDoc = await db.collection('users').doc(userId).get();
-      const userData = userDoc.data();
-
-      if (!userData?.fcmToken) {
-        console.log('No FCM token for user:', userId);
-        return null;
-      }
-
-      // Send push notification
-      const message = {
-        token: userData.fcmToken,
+      await messaging.send({
+        token,
         notification: {
-          title: notification.title,
-          body: notification.body,
+          title: notification.title || 'Liflu',
+          body: notification.body || '',
         },
-        data: notification.data || {},
+        data: {
+          title: notification.title || 'Liflu',
+          body: notification.body || '',
+          notificationId: event.params.notificationId,
+          ...(notification.data || {}),
+        },
         webpush: {
           notification: {
             icon: '/img/liflu-icon.png',
             badge: '/img/liflu-icon.png',
           },
         },
-      };
-
-      const response = await admin.messaging().send(message);
-      console.log('Successfully sent message:', response);
-      return null;
-    } catch (error) {
+      });
+    } catch (error: any) {
       console.error('Error sending push notification:', error);
-      return null;
-    }
-  });
 
-// Listen for task completions in shared spaces and send notifications to all members
-export const onTaskCompletion = functions.firestore
-  .document('spaces/{spaceId}/tasks/{taskId}')
-  .onUpdate(async (change, context) => {
-    const beforeData = change.before.data();
-    const afterData = change.after.data();
-
-    // Only trigger when task is newly completed
-    if (beforeData.completed === afterData.completed) {
-      return null;
-    }
-
-    if (!afterData.completed) {
-      return null;
-    }
-
-    const spaceId = context.params.spaceId;
-    const taskId = context.params.taskId;
-
-    try {
-      // Get space members
-      const membersSnapshot = await db
-        .collection('spaces')
-        .doc(spaceId)
-        .collection('members')
-        .get();
-
-      const members = membersSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-
-      // Get task completer info
-      const taskCompleterId = beforeData.completedBy || context.auth?.uid;
-      if (!taskCompleterId) {
-        return null;
-      }
-
-      // Get completer's display name
-      const completerDoc = await db.collection('users').doc(taskCompleterId).get();
-      const completerName = completerDoc.data()?.displayName || 'Пользователь';
-
-      // Send notification to all other members
-      const promises = members
-        .filter(member => member.userId !== taskCompleterId)
-        .map(async member => {
-          // Add notification to Firestore
-          await db
-            .collection('users')
-            .doc(member.userId)
-            .collection('notifications')
-            .add({
-              title: '✅ Задача выполнена',
-              body: `${completerName} завершил задачу: ${afterData.title}`,
-              type: 'task_reminder',
-              read: false,
-              createdAt: admin.firestore.FieldValue.serverTimestamp(),
-              data: { taskId, spaceId },
-            });
+      const code = error?.code || '';
+      if (
+        code === 'messaging/registration-token-not-registered' ||
+        code === 'messaging/invalid-registration-token'
+      ) {
+        await userDoc.ref.update({
+          fcmToken: null,
+          notificationsEnabled: false,
         });
-
-      await Promise.all(promises);
-      return null;
-    } catch (error) {
-      console.error('Error sending task completion notifications:', error);
-      return null;
-    }
-  });
-
-// Listen for habit completions in shared spaces
-export const onHabitCompletion = functions.firestore
-  .document('spaces/{spaceId}/habits/{habitId}/completions/{completionId}')
-  .onCreate(async (snap, context) => {
-    const completion = snap.data();
-    const spaceId = context.params.spaceId;
-    const habitId = context.params.habitId;
-    const userId = completion.userId;
-
-    try {
-      // Get habit info
-      const habitDoc = await db
-        .collection('spaces')
-        .doc(spaceId)
-        .collection('habits')
-        .doc(habitId)
-        .get();
-
-      const habitData = habitDoc.data();
-      if (!habitData) {
-        return null;
       }
-
-      // Get all members
-      const membersSnapshot = await db
-        .collection('spaces')
-        .doc(spaceId)
-        .collection('members')
-        .get();
-
-      const members = membersSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-
-      // Send notification to other members
-      const promises = members
-        .filter(member => member.userId !== userId)
-        .map(async member => {
-          await db
-            .collection('users')
-            .doc(member.userId)
-            .collection('notifications')
-            .add({
-              title: '🔥 Привычка выполнена',
-              body: `${completion.displayName} выполнил привычку: ${habitData.title}`,
-              type: 'habit_reminder',
-              read: false,
-              createdAt: admin.firestore.FieldValue.serverTimestamp(),
-              data: { habitId, spaceId },
-            });
-        });
-
-      await Promise.all(promises);
-      return null;
-    } catch (error) {
-      console.error('Error sending habit completion notifications:', error);
-      return null;
     }
-  });
+  }
+);

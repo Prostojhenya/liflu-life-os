@@ -60,6 +60,20 @@ export const NotificationCenter: React.FC = () => {
     }
   }, []);
 
+  useEffect(() => {
+    if (!user?.uid || !permissionGranted) return;
+
+    getFCMToken().then(async (token) => {
+      if (!token) return;
+      await updateDoc(doc(db, 'users', user.uid), {
+        fcmToken: token,
+        notificationsEnabled: true
+      });
+    }).catch((e) => {
+      console.error('Error saving FCM token:', e);
+    });
+  }, [user?.uid, permissionGranted]);
+
   // Subscribe to notifications from Firestore
   useEffect(() => {
     if (!user?.uid) return;
