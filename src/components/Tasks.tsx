@@ -2,11 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { db } from '@/firebase';
 import { collection, query, orderBy, onSnapshot, updateDoc, doc, deleteDoc, addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
 import { useStore, XP_VALUES, calculateLevel, STAT_LABELS } from '@/store/useStore';
-import { handleFirestoreError, OperationType, getFCMToken } from '@/firebase';
+import { handleFirestoreError, OperationType } from '@/firebase';
 import { CheckCircle2, Circle, Trash2, Calendar, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
-import { showLocalNotification } from './NotificationCenter';
 
 interface Task {
   id: string;
@@ -92,11 +91,6 @@ export const Tasks: React.FC = () => {
               createdAt: serverTimestamp(),
               data: { taskId: task.id, spaceId: user.currentSpaceId }
             });
-            
-            showLocalNotification(
-              '✅ Задача выполнена',
-              `${user.displayName} завершил задачу: ${task.title}`
-            );
           } catch (e) {
             console.error('Error sending task completion notification:', e);
           }

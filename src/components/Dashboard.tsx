@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore, XP_VALUES, calculateLevel, STAT_LABELS } from '@/store/useStore';
-import { db, handleFirestoreError, OperationType, getFCMToken, initMessaging } from '@/firebase';
+import { db, handleFirestoreError, OperationType } from '@/firebase';
 import {
   collection, query, orderBy, onSnapshot, updateDoc, doc,
   serverTimestamp, setDoc, getDocs, getDoc, addDoc
@@ -8,7 +8,6 @@ import {
 import { CheckCircle2, Circle, ChevronRight, Flame, CalendarDays, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
-import { showLocalNotification } from './NotificationCenter';
 
 /* ─── Types ─────────────────────────────────────────────────────────── */
 interface Task {
@@ -181,23 +180,14 @@ export const Dashboard: React.FC = () => {
         const otherMembers = members.filter(m => m.userId !== user.uid);
         for (const member of otherMembers) {
           try {
-            const fcmToken = await getFCMToken();
-            if (fcmToken) {
-              await addDoc(collection(db, `users/${member.userId}/notifications`), {
-                title: '✅ Задача выполнена',
-                body: `${user.displayName} завершил задачу: ${task.title}`,
-                type: 'task_reminder',
-                read: false,
-                createdAt: serverTimestamp(),
-                data: { taskId: task.id, spaceId: user.currentSpaceId }
-              });
-              
-              // Show local notification if permission granted
-              showLocalNotification(
-                '✅ Задача выполнена',
-                `${user.displayName} завершил задачу: ${task.title}`
-              );
-            }
+            await addDoc(collection(db, `users/${member.userId}/notifications`), {
+              title: '✅ Задача выполнена',
+              body: `${user.displayName} завершил задачу: ${task.title}`,
+              type: 'task_reminder',
+              read: false,
+              createdAt: serverTimestamp(),
+              data: { taskId: task.id, spaceId: user.currentSpaceId }
+            });
           } catch (e) {
             console.error('Error sending task completion notification:', e);
           }
@@ -240,11 +230,6 @@ export const Dashboard: React.FC = () => {
               createdAt: serverTimestamp(),
               data: { habitId: habit.id, spaceId: user.currentSpaceId }
             });
-            
-            showLocalNotification(
-              '🔥 Привычка выполнена',
-              `${user.displayName} выполнил привычку: ${habit.title}`
-            );
           } catch (e) {
             console.error('Error sending habit completion notification:', e);
           }
@@ -264,11 +249,6 @@ export const Dashboard: React.FC = () => {
                 createdAt: serverTimestamp(),
                 data: { habitId: habit.id, spaceId: user.currentSpaceId }
               });
-              
-              showLocalNotification(
-                '🎉 Все выполнили!',
-                `Все участники выполнили привычку: ${habit.title}`
-              );
             } catch (e) {
               console.error('Error sending streak notification:', e);
             }

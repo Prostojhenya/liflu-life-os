@@ -74,6 +74,21 @@ export const NotificationCenter: React.FC = () => {
         ...doc.data(),
         createdAt: doc.data().createdAt?.toDate() || new Date()
       })) as AppNotification[];
+      
+      // Check for new notifications and show push
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'added' && !change.doc.data().read) {
+          const notif = change.doc.data();
+          // Only show notification if app is not focused
+          if (document.hidden || !document.hasFocus()) {
+            showLocalNotification(
+              notif.title || 'Liflu',
+              notif.body || ''
+            );
+          }
+        }
+      });
+      
       setNotifications(notifs);
     });
     
