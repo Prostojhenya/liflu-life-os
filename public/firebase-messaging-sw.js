@@ -13,15 +13,23 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
+  console.log('Background message received:', payload);
+  
   const title = payload.notification?.title || payload.data?.title || 'Liflu';
   const options = {
     body: payload.notification?.body || payload.data?.body || '',
     icon: '/img/liflu-icon.png',
     badge: '/img/liflu-icon.png',
+    tag: payload.data?.tag || 'liflu-notification',
+    requireInteraction: false,
+    silent: false,
+    vibrate: [200, 100, 200],
     data: payload.data || {},
+    // Важно для Android - показывать даже на заблокированном экране
+    renotify: true,
   };
 
-  self.registration.showNotification(title, options);
+  return self.registration.showNotification(title, options);
 });
 
 self.addEventListener('notificationclick', (event) => {
