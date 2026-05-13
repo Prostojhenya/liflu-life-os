@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { db } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useStore, XP_VALUES } from '@/store/useStore';
 import { X, Plus, CheckSquare, Flame, Target, ShoppingCart, CalendarDays } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TaskDetailSheet } from './TaskDetailSheet';
+import { useCreateItem } from '@/hooks/useCreateItem';
 
 export type AddType = 'task' | 'habit' | 'goal' | 'shopping' | 'picker' | 'event';
 
@@ -36,11 +35,20 @@ export const AddSheet: React.FC<Props> = ({ type, onClose }) => {
   const [value, setValue] = useState('');
   const [itemType, setItemType] = useState<'task' | 'event'>('task');
   const [eventTime, setEventTime] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
   const [showDetailSheet, setShowDetailSheet] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
+
+  const { createItem, isCreating: isSaving } = useCreateItem({
+    spaceId: user?.currentSpaceId || '',
+    userId: user?.uid || '',
+    scheduledDate: selectedDate,
+    onSuccess: onClose,
+    onError: (error) => {
+      console.error('AddSheet save error:', error);
+    }
+  });
 
   const isPicker = type === 'picker';
 
@@ -73,63 +81,16 @@ export const AddSheet: React.FC<Props> = ({ type, onClose }) => {
 
   const handleSave = async (data?: any) => {
     const titleToSave = data?.title || value.trim();
-    if (!titleToSave || !user?.currentSpaceId || isSaving || !activeType) return;
-    setIsSaving(true);
-    try {
-      const today = new Date();
-      const taskDate = activeType === 'task' ? selectedDate : today;
-      const dateStr = `${taskDate.getFullYear()}-${String(taskDate.getMonth() + 1).padStart(2, '0')}-${String(taskDate.getDate()).padStart(2, '0')}`;
+    if (!titleToSave || !activeType) return;
 
-      if (activeType === 'task') {
-        await addDoc(collection(db, `spaces/${user.currentSpaceId}/tasks`), {
-          title: titleToSave,
-          description: data?.description || null,
-          priority: data?.priority || 'medium',
-          type: itemType,
-          eventTime: itemType === 'event' ? eventTime : null,
-          statType: 'intelligence',
-          completed: false,
-          xpAwarded: false,
-          xpValue: data?.xp || XP_VALUES.TASK,
-          spaceId: user.currentSpaceId,
-          scheduledDate: dateStr,
-          createdAt: serverTimestamp(),
-        });
-      } else if (activeType === 'habit') {
-        await addDoc(collection(db, `spaces/${user.currentSpaceId}/habits`), {
-          title: titleToSave,
-          description: data?.description || null,
-          statType: 'vitality',
-          frequency: 'daily',
-          streak: 0,
-          xpValue: data?.xp || XP_VALUES.HABIT,
-          spaceId: user.currentSpaceId,
-          createdAt: serverTimestamp(),
-        });
-      } else if (activeType === 'goal') {
-        await addDoc(collection(db, `spaces/${user.currentSpaceId}/goals`), {
-          title: titleToSave,
-          description: data?.description || null,
-          progress: 0,
-          target: 100,
-          xpValue: data?.xp || XP_VALUES.GOAL,
-          spaceId: user.currentSpaceId,
-          createdAt: serverTimestamp(),
-        });
-      } else if (activeType === 'shopping') {
-        await addDoc(collection(db, `spaces/${user.currentSpaceId}/shopping`), {
-          name: titleToSave,
-          completed: false,
-          spaceId: user.currentSpaceId,
-          createdAt: serverTimestamp(),
-        });
-      }
-      onClose();
-    } catch (err) {
-      console.error('AddSheet save error:', err);
-    } finally {
-      setIsSaving(false);
-    }
+    await createItem(itemType === 'event' ? 'event' : activeType, {
+      title: titleToSave,
+      description: data?.description,
+      priority: data?.priority,
+      xp: data?.xp,
+      reminder: data?.reminder,
+      eventTime: itemType === 'event' ? eventTime : null,
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

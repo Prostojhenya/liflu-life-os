@@ -14,6 +14,7 @@ import { Profile } from './components/Profile';
 import { LoadingScreen } from './components/LoadingScreen';
 import { Sparkles, LogIn } from 'lucide-react';
 import { ChatHeaderProvider } from './store/chatHeaderContext';
+import { createSpace, acceptInviteLink } from './lib/spaces';
 
 export default function App() {
   const { user, setUser, isAuthReady, setAuthReady, activeTab } = useStore();
@@ -40,29 +41,21 @@ export default function App() {
   // Process invite after login
   useEffect(() => {
     if (!user || !inviteToken || inviteProcessing) return;
+    
     const processInvite = async () => {
       setInviteProcessing(true);
       try {
-        const tokenSnap = await getDoc(doc(db, 'inviteLinks', inviteToken));
-        if (!tokenSnap.exists() || tokenSnap.data().used) {
-          alert('Ссылка недействительна или уже использована');
-          setInviteToken(null);
-          return;
-        }
-        const { spaceId, spaceName } = tokenSnap.data();
-        // Add user as member
-        await setDoc(doc(db, `spaces/${spaceId}/members`, user.uid), {
-          userId: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          role: 'member',
-          joinedAt: serverTimestamp(),
-        });
-        // Mark token as used
-        await updateDoc(doc(db, 'inviteLinks', inviteToken), { used: true, usedBy: user.uid });
+        const { spaceId, spaceName } = await acceptInviteLink(
+          inviteToken,
+          user.uid,
+          user.email || '',
+          user.displayName || 'User'
+        );
+
         // Switch to space
         await updateDoc(doc(db, 'users', user.uid), { currentSpaceId: spaceId });
         setUser({ ...user, currentSpaceId: spaceId });
+
         // Clean URL
         window.history.replaceState({}, '', window.location.pathname);
         setInviteToken(null);
@@ -70,11 +63,12 @@ export default function App() {
         alert(`Вы вступили в пространство "${spaceName}"!`);
       } catch (e) {
         console.error('Invite processing error:', e);
-        alert('Ошибка при вступлении в пространство');
+        alert(e instanceof Error ? e.message : 'Ошибка при вступлении в пространство');
       } finally {
         setInviteProcessing(false);
       }
     };
+    
     processInvite();
   }, [user, inviteToken]);
 
@@ -92,24 +86,14 @@ export default function App() {
                 userData = userSnap.data();
               } else {
                 // New user setup
-                const spacePath = 'spaces';
                 try {
-                  const personalSpaceRef = await addDoc(collection(db, spacePath), {
-                    name: 'Personal Space',
-                    type: 'personal',
-                    ownerId: firebaseUser.uid,
-                    createdAt: serverTimestamp(),
-                  });
-
-                  // Add member record
-                  const memberPath = `spaces/${personalSpaceRef.id}/members`;
-                  await setDoc(doc(db, memberPath, firebaseUser.uid), {
-                    spaceId: personalSpaceRef.id,
-                    userId: firebaseUser.uid,
-                    role: 'admin',
-                    spaceOwnerId: firebaseUser.uid,
-                    joinedAt: serverTimestamp(),
-                  });
+                  const personalSpaceId = await createSpace(
+                    firebaseUser.uid,
+                    firebaseUser.email || '',
+                    firebaseUser.displayName || 'User',
+                    'Personal Space',
+                    'personal'
+                  );
 
                   userData = {
                     uid: firebaseUser.uid,
@@ -118,7 +102,7 @@ export default function App() {
                     photoURL: firebaseUser.photoURL || '',
                     totalXP: 0,
                     level: 0,
-                    currentSpaceId: personalSpaceRef.id,
+                    currentSpaceId: personalSpaceId,
                     stats: INITIAL_STATS
                   };
                   await setDoc(userRef, userData);

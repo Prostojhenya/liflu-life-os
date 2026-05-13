@@ -18,10 +18,6 @@ service cloud.firestore {
       return isSignedIn() && exists(/databases/$(database)/documents/spaces/$(spaceId)/members/$(uid()));
     }
 
-    function isSpaceOwner(spaceId) {
-      return isSignedIn() && get(/databases/$(database)/documents/spaces/$(spaceId)).data.ownerId == uid();
-    }
-
     function isNotificationForSpaceMember(userId) {
       let spaceId = request.resource.data.data.spaceId;
       return isSignedIn()
@@ -56,12 +52,15 @@ service cloud.firestore {
     }
 
     // ===============================================================
-    // Spaces
+    // Spaces (FINAL - with memberIds requirement)
     // ===============================================================
     match /spaces/{spaceId} {
       allow get:    if isSignedIn() && (resource.data.ownerId == uid() || isMember(spaceId));
-      allow list:   if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.ownerId == uid();
+      allow list:   if isSignedIn() && request.query.limit != null && 
+                       ('memberIds' in resource.data && resource.data.memberIds.hasAny([uid()]));
+      allow create: if isSignedIn() && request.resource.data.ownerId == uid() &&
+                       request.resource.data.memberIds is list &&
+                       request.resource.data.memberIds.hasAny([uid()]);
       allow update: if isSignedIn() && resource.data.ownerId == uid();
       allow delete: if isSignedIn() && resource.data.ownerId == uid();
 
@@ -126,7 +125,8 @@ service cloud.firestore {
     // ===============================================================
     match /conversations/{convId} {
       allow read: if isSignedIn() && resource.data.participants.hasAny([uid()]);
-      allow list: if isSignedIn();
+      allow list: if isSignedIn() && request.query.limit != null &&
+                     ('participants' in resource.data && resource.data.participants.hasAny([uid()]));
       allow create: if isSignedIn() && request.resource.data.participants.hasAny([uid()]);
       allow update: if isSignedIn() && resource.data.participants.hasAny([uid()]);
 
@@ -166,17 +166,29 @@ service cloud.firestore {
     // Invite Links
     // ===============================================================
     match /inviteLinks/{tokenId} {
-      allow read:   if isSignedIn();
+      allow get:    if isSignedIn();
+      allow list:   if false; // No listing - only get by known token
       allow create: if isSignedIn() && request.resource.data.createdBy == uid();
-      allow update: if isSignedIn();
+      allow update: if isSignedIn() && 
+                       resource.data.used == false &&
+                       request.resource.data.used == true &&
+                       request.resource.data.usedBy == uid() &&
+                       request.resource.data.spaceId == resource.data.spaceId &&
+                       request.resource.data.keys().hasOnly(['used', 'usedBy']);
     }
 
     // ===============================================================
     // Invites
     // ===============================================================
     match /invites/{inviteId} {
-      allow read:   if isSignedIn();
-      allow list:   if isSignedIn();
+      allow get:    if isSignedIn() && (
+                       resource.data.email == request.auth.token.email ||
+                       resource.data.invitedBy == uid()
+                    );
+      allow list:   if isSignedIn() && request.query.limit != null && (
+                       ('email' in request.query && request.query.email == request.auth.token.email) ||
+                       ('invitedBy' in request.query && request.query.invitedBy == uid())
+                    );
       allow create: if isSignedIn() && request.resource.data.invitedBy == uid();
       allow update: if isSignedIn() && (
         resource.data.email == request.auth.token.email ||

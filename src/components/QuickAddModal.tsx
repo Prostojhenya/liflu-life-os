@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { db } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useStore, XP_VALUES } from '@/store/useStore';
 import { X, Plus } from 'lucide-react';
 import type { AddType } from './AddSheet';
-import { createTaskReminder, createHabitReminder } from '@/lib/notifications';
 import { TaskDetailSheet } from './TaskDetailSheet';
+import { useCreateItem } from '@/hooks/useCreateItem';
 
 interface Props {
   type: AddType | null;
@@ -33,11 +31,20 @@ export const QuickAddModal: React.FC<Props> = ({ type, onClose }) => {
   const { user, selectedDate } = useStore();
   const [value, setValue] = useState('');
   const [eventTime, setEventTime] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
   const [showDetailSheet, setShowDetailSheet] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
+
+  const { createItem, isCreating: isSaving } = useCreateItem({
+    spaceId: user?.currentSpaceId || '',
+    userId: user?.uid || '',
+    scheduledDate: selectedDate,
+    onSuccess: onClose,
+    onError: (error) => {
+      console.error('QuickAddModal save error:', error);
+    }
+  });
 
   const cfg = type ? CONFIG[type] : null;
 
@@ -57,71 +64,16 @@ export const QuickAddModal: React.FC<Props> = ({ type, onClose }) => {
 
   const handleSave = async (data?: any) => {
     const titleToSave = data?.title || value.trim();
-    if (!titleToSave || !user?.currentSpaceId || isSaving || !type || !cfg) return;
-    setIsSaving(true);
-    try {
-      const today = new Date();
-      const taskDate = (type === 'task' || type === 'event') ? selectedDate : today;
-      const dateStr = `${taskDate.getFullYear()}-${String(taskDate.getMonth() + 1).padStart(2, '0')}-${String(taskDate.getDate()).padStart(2, '0')}`;
+    if (!titleToSave || !type || !cfg) return;
 
-      if (type === 'task' || type === 'event') {
-        const docRef = await addDoc(collection(db, `spaces/${user.currentSpaceId}/tasks`), {
-          title: titleToSave,
-          description: data?.description || null,
-          priority: data?.priority || 'medium',
-          type: cfg.isEvent ? 'event' : 'task',
-          eventTime: cfg.isEvent ? (eventTime || null) : null,
-          statType: 'intelligence',
-          completed: false,
-          xpAwarded: false,
-          xpValue: data?.xp || XP_VALUES.TASK,
-          spaceId: user.currentSpaceId,
-          scheduledDate: dateStr,
-          createdAt: serverTimestamp(),
-        });
-        
-        if (type === 'task' && data?.reminder && user.uid) {
-          await createTaskReminder(user.uid, docRef.id, titleToSave, dateStr);
-        }
-      } else if (type === 'habit') {
-        const docRef = await addDoc(collection(db, `spaces/${user.currentSpaceId}/habits`), {
-          title: titleToSave,
-          description: data?.description || null,
-          statType: 'vitality',
-          frequency: 'daily',
-          streak: 0,
-          xpValue: data?.xp || XP_VALUES.HABIT,
-          spaceId: user.currentSpaceId,
-          createdAt: serverTimestamp(),
-        });
-        
-        if (data?.reminder && user.uid) {
-          await createHabitReminder(user.uid, docRef.id, titleToSave);
-        }
-      } else if (type === 'goal') {
-        await addDoc(collection(db, `spaces/${user.currentSpaceId}/goals`), {
-          title: titleToSave,
-          description: data?.description || null,
-          progress: 0,
-          target: 100,
-          xpValue: data?.xp || XP_VALUES.GOAL,
-          spaceId: user.currentSpaceId,
-          createdAt: serverTimestamp(),
-        });
-      } else if (type === 'shopping') {
-        await addDoc(collection(db, `spaces/${user.currentSpaceId}/shopping`), {
-          name: titleToSave,
-          completed: false,
-          spaceId: user.currentSpaceId,
-          createdAt: serverTimestamp(),
-        });
-      }
-      onClose();
-    } catch (err) {
-      console.error('QuickAddModal save error:', err);
-    } finally {
-      setIsSaving(false);
-    }
+    await createItem(cfg.isEvent ? 'event' : type, {
+      title: titleToSave,
+      description: data?.description,
+      priority: data?.priority,
+      xp: data?.xp,
+      reminder: data?.reminder,
+      eventTime: cfg.isEvent ? (eventTime || null) : null,
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

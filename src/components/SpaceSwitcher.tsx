@@ -5,6 +5,12 @@ import { useStore } from '@/store/useStore';
 import { X, Plus, Users, Lock, Settings, UserPlus, Mail, Trash2, Crown, Shield, Link, Copy, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
+import { 
+  getUserSpaces, 
+  createSpace as createSpaceHelper, 
+  addSpaceMember, 
+  removeSpaceMember 
+} from '@/lib/spaces';
 
 interface Space {
   id: string;
@@ -58,99 +64,46 @@ export const SpaceSwitcher: React.FC<SpaceSwitcherProps> = ({ isOpen, onClose })
   useEffect(() => {
     if (!user?.uid) return;
 
-    // Query spaces where user is the owner
-    const ownerQuery = query(
-      collection(db, 'spaces'),
-      where('ownerId', '==', user.uid)
-    );
-
-    // Query spaces where user is a member (via subcollection membership docs)
-    // We listen to the user's membership docs across all spaces
-    const membershipQuery = query(
-      collection(db, 'userMemberships'),
-      where('userId', '==', user.uid)
-    );
-
-    let ownerSpaces: Space[] = [];
-    let memberSpaceIds: string[] = [];
-
-    const mergeAndSetSpaces = async (owned: Space[], memberIds: string[]) => {
-      // Fetch member spaces that aren't already in owned list
-      const ownedIds = new Set(owned.map(s => s.id));
-      const toFetch = memberIds.filter(id => !ownedIds.has(id));
-
-      const fetchedMemberSpaces: Space[] = [];
-      for (const spaceId of toFetch) {
-        try {
-          const spaceSnap = await getDoc(doc(db, 'spaces', spaceId));
-          if (spaceSnap.exists()) {
-            fetchedMemberSpaces.push({ id: spaceSnap.id, ...spaceSnap.data() } as Space);
-          }
-        } catch (e) {
-          console.error('Error fetching member space:', spaceId, e);
-        }
-      }
-
-      const allUserSpaces = [...owned, ...fetchedMemberSpaces];
-
-      // Get member counts for shared spaces
-      const spacesWithCounts = await Promise.all(
-        allUserSpaces.map(async (space) => {
-          if (space.type === 'shared') {
-            try {
-              const membersSnap = await getDocs(collection(db, `spaces/${space.id}/members`));
-              return { ...space, memberCount: membersSnap.size };
-            } catch {
-              return space;
+    const loadSpaces = async () => {
+      try {
+        const userSpaces = await getUserSpaces(user.uid);
+        
+        // Get member counts for shared spaces
+        const spacesWithCounts = await Promise.all(
+          userSpaces.map(async (space: any) => {
+            if (space.type === 'shared') {
+              try {
+                const membersSnap = await getDocs(collection(db, `spaces/${space.id}/members`));
+                return { ...space, memberCount: membersSnap.size };
+              } catch {
+                return space;
+              }
             }
-          }
-          return space;
-        })
-      );
+            return space;
+          })
+        );
 
-      setSpaces(spacesWithCounts);
+        setSpaces(spacesWithCounts);
+      } catch (error) {
+        console.error('Error loading spaces:', error);
+      }
     };
 
-    const unsubOwner = onSnapshot(ownerQuery, async (snapshot) => {
-      ownerSpaces = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Space));
-      await mergeAndSetSpaces(ownerSpaces, memberSpaceIds);
+    loadSpaces();
+    
+    // Subscribe to changes
+    const q = query(
+      collection(db, 'spaces'),
+      where('memberIds', 'array-contains', user.uid)
+    );
+    
+    const unsubscribe = onSnapshot(q, () => {
+      loadSpaces();
     }, (error) => {
-      console.error('Error fetching owned spaces:', error);
+      console.error('Error in spaces subscription:', error);
     });
 
-    // Also listen to spaces where user is a member via subcollection
-    // We do a one-time fetch of all spaces and check membership
-    const fetchMemberSpaces = async () => {
-      try {
-        // Find spaces where user is a member by querying their member docs
-        // Since we can't query across subcollections directly, we store spaceIds in a top-level collection
-        const allSpacesSnap = await getDocs(query(collection(db, 'spaces')));
-        const ids: string[] = [];
-        for (const spaceDoc of allSpacesSnap.docs) {
-          if (spaceDoc.data().ownerId === user.uid) continue; // already covered
-          try {
-            const memberDoc = await getDocs(
-              query(collection(db, `spaces/${spaceDoc.id}/members`), where('userId', '==', user.uid))
-            );
-            if (!memberDoc.empty) {
-              ids.push(spaceDoc.id);
-            }
-          } catch {
-            // no access = not a member
-          }
-        }
-        memberSpaceIds = ids;
-        await mergeAndSetSpaces(ownerSpaces, memberSpaceIds);
-      } catch (error) {
-        console.error('Error fetching member spaces:', error);
-      }
-    };
-
-    fetchMemberSpaces();
-
-    return () => {
-      unsubOwner();
-    };
+    return () => unsubscribe();
   }, [user?.uid]);
 
   // Load invites for current user
@@ -224,30 +177,19 @@ export const SpaceSwitcher: React.FC<SpaceSwitcherProps> = ({ isOpen, onClose })
     try {
       console.log('Creating space:', { name: newSpaceName, type: newSpaceType, ownerId: user.uid });
       
-      const spaceRef = await addDoc(collection(db, 'spaces'), {
-        name: newSpaceName,
-        type: newSpaceType,
-        ownerId: user.uid,
-        createdAt: serverTimestamp(),
-      });
+      const spaceId = await createSpaceHelper(
+        user.uid,
+        user.email || '',
+        user.displayName || 'User',
+        newSpaceName,
+        newSpaceType
+      );
 
-      console.log('Space created:', spaceRef.id);
-
-      // Add creator as admin member
-      await setDoc(doc(db, `spaces/${spaceRef.id}/members`, user.uid), {
-        userId: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-        role: 'admin',
-        spaceOwnerId: user.uid,
-        joinedAt: serverTimestamp(),
-      });
-
-      console.log('Member added to space');
+      console.log('Space created:', spaceId);
 
       setNewSpaceName('');
       setNewSpaceType('personal');
-      await switchSpace(spaceRef.id);
+      await switchSpace(spaceId);
     } catch (error) {
       console.error('Error creating space:', error);
       alert('Ошибка при создании пространства: ' + (error instanceof Error ? error.message : String(error)));
@@ -301,15 +243,13 @@ export const SpaceSwitcher: React.FC<SpaceSwitcherProps> = ({ isOpen, onClose })
     if (!user) return;
 
     try {
-      // Add user as member
-      await setDoc(doc(db, `spaces/${invite.spaceId}/members`, user.uid), {
-        userId: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-        role: 'member',
-        spaceOwnerId: invite.invitedBy,
-        joinedAt: serverTimestamp(),
-      });
+      await addSpaceMember(
+        invite.spaceId,
+        user.uid,
+        user.email || '',
+        user.displayName || 'User',
+        'member'
+      );
 
       // Update invite status
       await updateDoc(doc(db, 'invites', invite.id), {
@@ -388,7 +328,7 @@ export const SpaceSwitcher: React.FC<SpaceSwitcherProps> = ({ isOpen, onClose })
 
     if (window.confirm('Удалить участника из пространства?')) {
       try {
-        await deleteDoc(doc(db, `spaces/${managingSpaceId}/members`, memberId));
+        await removeSpaceMember(managingSpaceId, memberUserId);
       } catch (error) {
         console.error('Error removing member:', error);
       }
